@@ -37,15 +37,15 @@
       {% if product.description %}
       <p class="product-description" style="margin: 1.5rem 0; line-height: 1.7;">{{ product.description }}</p>
       {% endif %}
-      <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1.5rem;">
-        {% if session.user_id %}
-        <button type="button" class="btn" id="wishlistBtn" data-product-id="{{ product.id }}" data-in-wishlist="{{ 'true' if in_wishlist else 'false' }}">
-          <span id="wishlistLabel">{{ 'Remove from Wishlist' if in_wishlist else 'Add to Wishlist' }}</span>
-        </button>
-        {% endif %}
-        <button type="button" class="btn add-to-cart-btn" onclick="addToCart({{ product.id }})" {% if product.stock < 1 %}disabled{% endif %}>
+      <div class="product-action-row">
+        <button type="button" class="btn add-to-cart-btn product-add-btn" onclick="addToCart({{ product.id }})" {% if product.stock < 1 %}disabled{% endif %}>
           Add to Cart
         </button>
+        {% if session.user_id %}
+        <button type="button" class="wishlist-icon-btn {% if in_wishlist %}active{% endif %}" id="wishlistBtn" data-product-id="{{ product.id }}" data-in-wishlist="{{ 'true' if in_wishlist else 'false' }}" aria-label="Toggle wishlist" title="Wishlist">
+          <span id="wishlistLabel" aria-hidden="true">{% if in_wishlist %}♥{% else %}♡{% endif %}</span>
+        </button>
+        {% endif %}
       </div>
     </div>
   </div>
@@ -113,7 +113,8 @@
         const data = await res.json();
         if (data.success) {
           const label = document.getElementById('wishlistLabel');
-          if (label) label.textContent = data.in_wishlist ? 'Remove from Wishlist' : 'Add to Wishlist';
+          if (label) label.textContent = data.in_wishlist ? '♥' : '♡';
+          wishlistBtn.classList.toggle('active', !!data.in_wishlist);
         }
       } catch (e) {}
     });

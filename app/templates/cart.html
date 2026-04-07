@@ -97,16 +97,17 @@
 
         <div class="payment-section">
           <div class="payment-title">PAYMENT METHOD</div>
+          <p class="payment-note">Secure checkout with trusted channels.</p>
           <div class="payment-options">
             <div class="payment-option">
               <input type="radio" id="gcash" name="payment" value="gcash" onchange="showPaymentDetails()" />
               <label for="gcash">GCash</label>
-              <span class="payment-icon">💰</span>
+              <span class="payment-icon">🛡️</span>
             </div>
             <div class="payment-option">
               <input type="radio" id="cod" name="payment" value="cod" checked onchange="showPaymentDetails()" />
               <label for="cod">Cash on Delivery</label>
-              <span class="payment-icon">💵</span>
+              <span class="payment-icon">💳</span>
             </div>
           </div>
           <div id="paymentDetails" class="payment-details">
@@ -131,6 +132,10 @@
               <input type="text" id="gcashAccountName" placeholder="Enter account holder name" />
             </div>
           </div>
+        </div>
+        <div class="payment-section">
+          <div class="payment-title">TRUST & POLICY</div>
+          <p class="payment-note">4.8/5 buyer rating • 7-day return window • Real-time order support.</p>
         </div>
 
         <button class="checkout-btn" data-total="{{ "%.2f"|format(total_subtotal) }}" onclick="checkoutBtnHandler(this)">

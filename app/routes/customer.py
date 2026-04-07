@@ -20,9 +20,18 @@ customer_bp = Blueprint('customer', __name__)
 
 @customer_bp.route('/shop')
 def shop():
-    products = Product.query.filter(Product.stock > 0).order_by(
-        Product.is_pinned.desc(), Product.created_at.desc()
-    ).all()
+    query = (request.args.get('q') or '').strip()
+    products_q = Product.query.filter(Product.stock > 0)
+    if query:
+        search = f"%{query}%"
+        products_q = products_q.filter(
+            db.or_(
+                Product.name.ilike(search),
+                Product.category.ilike(search),
+                Product.description.ilike(search)
+            )
+        )
+    products = products_q.order_by(Product.is_pinned.desc(), Product.created_at.desc()).all()
     return render_template('shop.html', products=products)
 
 
@@ -178,6 +187,32 @@ def cart_count():
     ).scalar() or 0
     
     return jsonify({'count': int(count)})
+
+@customer_bp.route('/cart/mini')
+def cart_mini():
+    """Compact cart payload for sticky mini-cart drawer."""
+    if 'user_id' not in session:
+        return jsonify({'items': [], 'total': 0.0, 'count': 0})
+    cart_items = db.session.query(Cart, Product).join(Product).filter(
+        Cart.user_id == session['user_id']
+    ).all()
+    items = []
+    total = 0.0
+    count = 0
+    for cart_item, product in cart_items:
+        line_total = float(product.price) * int(cart_item.quantity)
+        total += line_total
+        count += int(cart_item.quantity)
+        items.append({
+            'cart_id': cart_item.id,
+            'product_id': product.id,
+            'name': product.name,
+            'image_url': product.image_url,
+            'price': float(product.price),
+            'quantity': int(cart_item.quantity),
+            'line_total': round(line_total, 2)
+        })
+    return jsonify({'items': items, 'total': round(total, 2), 'count': count})
 
 
 @customer_bp.route('/cart/add', methods=['POST'])

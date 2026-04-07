@@ -81,11 +81,18 @@ async function updateCartCount() {
     const response = await fetch("/cart/count");
     const data = await response.json();
     const countEl = document.getElementById("cartCount");
+    const navCountEl = document.getElementById("navCartCount");
     if (countEl && data.count > 0) {
       countEl.textContent = data.count;
       countEl.style.display = "flex";
     } else if (countEl) {
       countEl.style.display = "none";
+    }
+    if (navCountEl && data.count > 0) {
+      navCountEl.textContent = data.count;
+      navCountEl.style.display = "flex";
+    } else if (navCountEl) {
+      navCountEl.style.display = "none";
     }
   } catch (error) {
   }
@@ -126,6 +133,7 @@ window.addEventListener("DOMContentLoaded", function () {
   const savedTheme = localStorage.getItem("theme") || "dark";
   document.documentElement.setAttribute("data-theme", savedTheme);
   updateThemeButton(savedTheme);
+  initToastFromUrl();
 });
 
 async function updateQuantity(cartId, change) {
@@ -340,13 +348,10 @@ function proceedCheckout(paymentMethod, paymentDetails, deliveryFee) {
     .then(function(r) { return r.json(); })
     .then(function(data) {
       if (data.success) {
-        showAlertModal({
-          title: "Order placed",
-          body: "Order placed successfully. Receipt has been sent to your email.",
-          onClose: function() {
-            window.location.href = "/shop";
-          }
-        });
+        if (typeof showToast === "function") showToast("Checkout completed successfully.", "success", true);
+        setTimeout(function() {
+          window.location.href = "/shop?toast=checkout";
+        }, 700);
       } else {
         showAlertModal({ title: "Checkout error", body: data.error || "Something went wrong" });
       }
@@ -365,6 +370,7 @@ window.addEventListener("load", function() {
 document.addEventListener("DOMContentLoaded", function() {
   const filterButtons = document.querySelectorAll(".filter-btn");
   const productCards = document.querySelectorAll(".product-card");
+  if (!filterButtons.length || !productCards.length) return;
 
   filterButtons.forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -1202,6 +1208,7 @@ function openEditModal(productId) {
   const productCategory = document.getElementById("productCategory");
   const productImage = document.getElementById("productImage");
   const productImageFile = document.getElementById("productImageFile");
+  const productImageFiles = document.getElementById("productImageFiles");
   const productIsPinned = document.getElementById("productIsPinned");
   const productPinToggle = document.getElementById("productPinToggle");
   const productImageUrlsExtra = document.getElementById("productImageUrlsExtra");
@@ -1217,6 +1224,7 @@ function openEditModal(productId) {
   if (productCategory) productCategory.value = category || "";
   if (productImage) productImage.value = primary;
   if (productImageFile) productImageFile.value = "";
+  if (productImageFiles) productImageFiles.value = "";
   if (productIsPinned) productIsPinned.value = is_pinned ? "1" : "0";
   if (productPinToggle) {
     productPinToggle.classList.toggle("on", !!is_pinned);
@@ -1238,7 +1246,9 @@ function openAddModal() {
   var productId = document.getElementById("productId");
   if (productId) productId.value = "";
   var productImageFile = document.getElementById("productImageFile");
+  var productImageFiles = document.getElementById("productImageFiles");
   if (productImageFile) productImageFile.value = "";
+  if (productImageFiles) productImageFiles.value = "";
   var productIsPinned = document.getElementById("productIsPinned");
   if (productIsPinned) productIsPinned.value = "0";
   var productPinToggle = document.getElementById("productPinToggle");
@@ -1266,12 +1276,15 @@ document.addEventListener("DOMContentLoaded", function() {
       e.preventDefault();
 
       const imageFileInput = document.getElementById("productImageFile");
+      const imageFilesInput = document.getElementById("productImageFiles");
       const imageUrlInput = document.getElementById("productImage");
       
       const imageFile = imageFileInput ? imageFileInput.files[0] : null;
+      const imageFiles = imageFilesInput ? Array.from(imageFilesInput.files || []) : [];
       const imageUrl = imageUrlInput ? imageUrlInput.value.trim() : "";
 
       let finalImageUrl = imageUrl;
+      let uploadedGalleryUrls = [];
       if (imageFile) {
         try {
           const formData = new FormData();
@@ -1294,6 +1307,24 @@ document.addEventListener("DOMContentLoaded", function() {
           return;
         }
       }
+      if (imageFiles.length) {
+        for (const galleryFile of imageFiles) {
+          if (!galleryFile.type.startsWith("image/")) continue;
+          try {
+            const galleryFormData = new FormData();
+            galleryFormData.append("image", galleryFile);
+            const galleryUploadResponse = await fetch("/admin/products/upload-image", {
+              method: "POST",
+              body: galleryFormData
+            });
+            const galleryUploadData = await galleryUploadResponse.json();
+            if (galleryUploadData.success && galleryUploadData.image_url) {
+              uploadedGalleryUrls.push(galleryUploadData.image_url);
+            }
+          } catch (error) {
+          }
+        }
+      }
 
       const productName = document.getElementById("productName");
       const productDescription = document.getElementById("productDescription");
@@ -1304,10 +1335,16 @@ document.addEventListener("DOMContentLoaded", function() {
       const productPinToggle = document.getElementById("productPinToggle");
       const productImageUrlsExtra = document.getElementById("productImageUrlsExtra");
       var imageUrlList = finalImageUrl ? [finalImageUrl] : [];
+      if (uploadedGalleryUrls.length) {
+        imageUrlList = imageUrlList.concat(uploadedGalleryUrls.filter(function(u) { return u && u !== finalImageUrl; }));
+      }
       if (productImageUrlsExtra && productImageUrlsExtra.value.trim()) {
         var lines = productImageUrlsExtra.value.split("\n").map(function(s) { return s.trim(); }).filter(Boolean);
         if (finalImageUrl) imageUrlList = [finalImageUrl].concat(lines.filter(function(u) { return u !== finalImageUrl; }));
         else imageUrlList = lines;
+        if (uploadedGalleryUrls.length) {
+          imageUrlList = imageUrlList.concat(uploadedGalleryUrls.filter(function(u) { return imageUrlList.indexOf(u) === -1; }));
+        }
       }
       const productData = {
         name: productName ? productName.value : "",
@@ -1378,6 +1415,12 @@ document.addEventListener("DOMContentLoaded", function() {
   }
   var productImageFile = document.getElementById("productImageFile");
   if (productImageFile) productImageFile.addEventListener("change", function() { handleImageUpload(this); });
+  var productImageFiles = document.getElementById("productImageFiles");
+  if (productImageFiles) productImageFiles.addEventListener("change", function() {
+    if (productImageFiles.files && productImageFiles.files.length && typeof showToast === "function") {
+      showToast(productImageFiles.files.length + " gallery image(s) selected", "success", true);
+    }
+  });
   var productImageInput = document.getElementById("productImage");
   if (productImageInput) productImageInput.addEventListener("input", function() { updateImagePreview(this.value); });
 });
@@ -1658,5 +1701,32 @@ async function completeSale() {
   } catch (error) {
     if (typeof showToast === "function") showToast("Error completing sale: " + error.message, "error");
   }
+}
+
+function initToastFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const toastType = params.get("toast");
+  if (!toastType || typeof showToast !== "function") return;
+  const messages = {
+    login: "Logged in successfully.",
+    logout: "Logged out successfully.",
+    register: "Registration complete. You can now log in.",
+    checkout: "Order completed. Thank you for shopping."
+  };
+  if (messages[toastType]) showToast(messages[toastType], "success", true);
+  params.delete("toast");
+  const nextUrl = window.location.pathname + (params.toString() ? "?" + params.toString() : "");
+  window.history.replaceState({}, "", nextUrl);
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+  const wrapper = document.getElementById("navWrapper");
+  if (wrapper) wrapper.classList.remove("open");
+});
+
+function toggleMobileNav() {
+  const wrapper = document.getElementById("navWrapper");
+  if (!wrapper) return;
+  wrapper.classList.toggle("open");
 }
 

@@ -24,8 +24,12 @@
           <div class="logo">Looph.co</div>
         </a>
       </div>
+      <form class="nav-search" action="{{ url_for('customer.shop') }}" method="get">
+        <input type="search" name="q" placeholder="Search products..." />
+      </form>
 
-      <div class="nav-wrapper">
+      <button class="nav-hamburger" type="button" onclick="toggleMobileNav()" aria-label="Toggle navigation">☰</button>
+      <div class="nav-wrapper" id="navWrapper">
         <ul class="nav-links">
           {% if session.role == 'admin' %}
           <li><a href="{{ url_for('main.index') }}">Home</a></li>
@@ -45,15 +49,10 @@
           <li><a href="{{ url_for('main.index') }}">Home</a></li>
           <li><a href="{{ url_for('customer.shop') }}">Shop</a></li>
           <li><a href="{{ url_for('customer.about') }}">About</a></li>
-          <li><a href="{{ url_for('customer.cart') }}">Cart</a></li>
-          <li class="nav-profile-wrap">
-            <a href="{{ url_for('customer.profile') }}" class="nav-profile-link" title="Profile" aria-label="Profile">
-              <svg class="nav-profile-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            </a>
-          </li>
           <li>
             <a href="#" onclick="confirmLogout(); return false;" id="logoutUrl" data-url="{{ url_for('auth.logout') }}">Logout</a>
           </li>
+          <li><a href="{{ url_for('customer.profile') }}">Profile</a></li>
           {% else %}
           <li><a href="{{ url_for('main.index') }}">Home</a></li>
           <li><a href="{{ url_for('customer.about') }}">About</a></li>
@@ -61,31 +60,31 @@
           <li><a href="{{ url_for('auth.register') }}">Register</a></li>
           {% endif %}
         </ul>
-        <button
-          class="theme-toggle"
-          onclick="toggleTheme()"
-          id="themeToggle"
-          title="Toggle theme"
-          aria-label="Toggle theme"
-        >
-          <svg
-            id="themeIcon"
-            class="theme-icon"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <circle cx="12" cy="12" r="5" />
-            <path
-              d="M12 1v3m0 16v3M5.64 5.64l2.12 2.12m8.48 8.48l2.12 2.12M1 12h3m16 0h3M5.64 18.36l2.12-2.12m8.48-8.48l2.12-2.12"
-            />
-          </svg>
-        </button>
       </div>
     </nav>
 
     <main>{% block content %}{% endblock %}</main>
+    <button
+      class="theme-toggle theme-fab"
+      onclick="toggleTheme()"
+      id="themeToggle"
+      title="Toggle theme"
+      aria-label="Toggle theme"
+    >
+      <svg
+        id="themeIcon"
+        class="theme-icon"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <circle cx="12" cy="12" r="5" />
+        <path
+          d="M12 1v3m0 16v3M5.64 5.64l2.12 2.12m8.48 8.48l2.12 2.12M1 12h3m16 0h3M5.64 18.36l2.12-2.12m8.48-8.48l2.12-2.12"
+        />
+      </svg>
+    </button>
 
     <div id="toastBackdrop" class="toast-backdrop" aria-hidden="true"></div>
     <div id="toastContainer" class="toast-container" role="region" aria-live="polite">

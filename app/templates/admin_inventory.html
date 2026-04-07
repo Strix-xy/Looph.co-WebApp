@@ -118,6 +118,10 @@ endblock %} {% block content %}
           <input type="file" id="productImageFile" accept="image/*" class="image-upload-input" />
         </div>
         <div class="image-upload-section">
+          <label class="image-upload-label">Upload additional gallery images (multiple)</label>
+          <input type="file" id="productImageFiles" accept="image/*" multiple class="image-upload-input" />
+        </div>
+        <div class="image-upload-section">
           <label class="image-upload-label">Primary image URL</label>
           <input type="text" id="productImage" placeholder="https://example.com/image.jpg" class="image-upload-input" />
         </div>

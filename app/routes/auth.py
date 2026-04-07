@@ -47,9 +47,9 @@ def login():
             
             # Redirect based on role
             if user.role == 'admin':
-                return redirect(url_for('admin.dashboard'))
+                return redirect(url_for('admin.dashboard', toast='login'))
             else:
-                return redirect(url_for('customer.shop'))
+                return redirect(url_for('customer.shop', toast='login'))
         else:
             return render_template('login.html', error='Invalid credentials')
     
@@ -85,9 +85,6 @@ def register():
         
         if not is_valid_email(email):
             return render_template('register.html', error='Invalid email format')
-        from app.utils.helpers import is_valid_phone_ph
-        if not is_valid_phone_ph(phone_number):
-            return render_template('register.html', error='Invalid phone. Use Philippine format: 09XXXXXXXXX or +639XXXXXXXXX')
         email_lower = email.lower().strip()
         if not email_lower.endswith('@gmail.com'):
             return render_template('register.html', error='Please use a Gmail address (must end with @gmail.com)')
@@ -119,7 +116,7 @@ def register():
             export_to_excel()
             send_welcome_email(new_user)
             
-            return redirect(url_for('auth.login'))
+            return redirect(url_for('auth.login', toast='register'))
         
         except Exception:
             db.session.rollback()
@@ -132,4 +129,4 @@ def register():
 def logout():
     """Clear user session and redirect to landing page"""
     session.clear()
-    return redirect(url_for('main.index'))
+    return redirect(url_for('main.index', toast='logout'))

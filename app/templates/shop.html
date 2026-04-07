@@ -21,7 +21,6 @@ content %}
     <button class="filter-btn" data-category="Accessories">Accessories</button>
     <button class="filter-btn" data-category="Outerwear">Outerwear</button>
   </div>
-
   <div class="products-grid">
     {% for product in products %}
     <a href="{{ url_for('customer.product_detail', product_id=product.id) }}" class="product-card product-card-link" data-category="{{ product.category or '' }}" style="text-decoration: none; color: inherit;">
