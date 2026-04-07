@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block title %}{{ product.name }} - Looph{% endblock %}
+{% block content %}
+{% set product_images = product.get_image_list() %}
+<div class="shop-container" style="max-width: 900px; margin: 0 auto;">
+  <div class="product-detail-card card product-detail-grid">
+    <div class="product-gallery">
+      <div class="product-gallery-main">
+        {% if product_images %}
+        <img id="productGalleryMain" src="{{ product_images[0] }}" alt="{{ product.name }}" />
+        {% else %}
+        <div class="product-placeholder product-gallery-placeholder">L</div>
+        {% endif %}
+      </div>
+      {% if product_images|length > 1 %}
+      <div class="product-gallery-thumbs">
+        {% for url in product_images %}
+        <button type="button" class="gallery-thumb {% if loop.first %}active{% endif %}" data-src="{{ url }}" aria-label="View image {{ loop.index }}">
+          <img src="{{ url }}" alt="" />
+        </button>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+    <div>
+      <h1 class="product-name" style="margin-bottom: 0.5rem;">{{ product.name }}</h1>
+      <div class="product-price" style="font-size: 1.5rem; margin-bottom: 1rem;">₱{{ "%.2f"|format(product.price) }}</div>
+      <p style="color: var(--text-gray); font-size: 0.9rem; margin-bottom: 0.5rem;">
+        {{ product.sold_count or 0 }} sold
+        &middot;
+        {% if product.stock > 0 %}
+        <span style="color: #4caf50;">In stock ({{ product.stock }})</span>
+        {% else %}
+        <span style="color: #ff4444;">Out of stock</span>
+        {% endif %}
+      </p>
+      {% if product.description %}
+      <p class="product-description" style="margin: 1.5rem 0; line-height: 1.7;">{{ product.description }}</p>
+      {% endif %}
+      <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1.5rem;">
+        {% if session.user_id %}
+        <button type="button" class="btn" id="wishlistBtn" data-product-id="{{ product.id }}" data-in-wishlist="{{ 'true' if in_wishlist else 'false' }}">
+          <span id="wishlistLabel">{{ 'Remove from Wishlist' if in_wishlist else 'Add to Wishlist' }}</span>
+        </button>
+        {% endif %}
+        <button type="button" class="btn add-to-cart-btn" onclick="addToCart({{ product.id }})" {% if product.stock < 1 %}disabled{% endif %}>
+          Add to Cart
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top: 2rem; padding: 2rem;">
+    <h2 style="font-family: 'Cinzel', serif; letter-spacing: 2px; margin-bottom: 1.5rem;">Reviews</h2>
+    {% if reviews %}
+    <ul style="list-style: none; padding: 0;">
+      {% for review in reviews %}
+      <li style="border-bottom: 1px solid var(--border-color); padding: 1rem 0;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <strong>{{ review.user.username if review.user else 'User' }}</strong>
+          <span style="color: var(--text-gray); font-size: 0.9rem;">{{ review.rating }}/5 &middot; {{ review.created_at.strftime('%b %d, %Y') if review.created_at else '' }}</span>
+        </div>
+        {% if review.comment %}<p style="margin: 0.5rem 0 0; color: var(--text-gray);">{{ review.comment }}</p>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p style="color: var(--text-gray);">No reviews yet.</p>
+    {% endif %}
+    {% if session.user_id %}
+    <div class="review-form-wrap">
+      <h3 class="review-form-title">Add a review</h3>
+      <form id="reviewForm" class="review-form">
+        <div class="form-group">
+          <label>Rating (1–5)</label>
+          <div class="star-rating" id="starRating" role="group" aria-label="Rate 1 to 5 stars">
+            <button type="button" class="star-btn" data-value="1" aria-label="1 star">★</button>
+            <button type="button" class="star-btn" data-value="2" aria-label="2 stars">★</button>
+            <button type="button" class="star-btn" data-value="3" aria-label="3 stars">★</button>
+            <button type="button" class="star-btn" data-value="4" aria-label="4 stars">★</button>
+            <button type="button" class="star-btn active" data-value="5" aria-label="5 stars">★</button>
+          </div>
+          <input type="hidden" name="rating" id="reviewRating" value="5" />
+        </div>
+        <div class="form-group">
+          <label>Comment (optional)</label>
+          <textarea name="comment" id="reviewComment" rows="3" class="review-comment-input"></textarea>
+        </div>
+        <button type="submit" class="btn">Submit review</button>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+  window.loginUrl = "{{ url_for('auth.login') }}";
+  const productId = {{ product.id }};
+  document.querySelectorAll('.gallery-thumb').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.gallery-thumb').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      var main = document.getElementById('productGalleryMain');
+      if (main) main.src = btn.dataset.src || btn.getAttribute('data-src');
+    });
+  });
+  const wishlistBtn = document.getElementById('wishlistBtn');
+  if (wishlistBtn) {
+    wishlistBtn.addEventListener('click', async function() {
+      try {
+        const res = await fetch('/wishlist/toggle/' + productId, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+        const data = await res.json();
+        if (data.success) {
+          const label = document.getElementById('wishlistLabel');
+          if (label) label.textContent = data.in_wishlist ? 'Remove from Wishlist' : 'Add to Wishlist';
+        }
+      } catch (e) {}
+    });
+  }
+  (function() {
+    var starRating = document.getElementById('starRating');
+    var reviewRatingInput = document.getElementById('reviewRating');
+    if (starRating && reviewRatingInput) {
+      starRating.querySelectorAll('.star-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var v = parseInt(btn.getAttribute('data-value'), 10);
+          reviewRatingInput.value = v;
+          starRating.querySelectorAll('.star-btn').forEach(function(b) {
+            var bv = parseInt(b.getAttribute('data-value'), 10);
+            b.classList.toggle('active', bv <= v);
+          });
+        });
+      });
+      starRating.querySelectorAll('.star-btn')[4].click();
+    }
+  })();
+  document.getElementById('reviewForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const rating = document.getElementById('reviewRating').value;
+    const comment = document.getElementById('reviewComment').value;
+    try {
+      const res = await fetch('/product/' + productId + '/review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rating: rating, comment: comment })
+      });
+      const data = await res.json();
+      if (data.success) location.reload();
+      else if (typeof showToast === 'function') showToast(data.error || 'Failed to submit review', 'error');
+    } catch (err) { if (typeof showToast === 'function') showToast(err.message || 'Error', 'error'); }
+  });
+  async function addToCart(pid) {
+    try {
+      const res = await fetch('/cart/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ product_id: pid, quantity: 1 })
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (typeof showToast === 'function') showToast('Item added to cart!', 'success', true);
+        if (typeof updateCartCount === 'function') updateCartCount();
+      } else if (res.status === 401 && typeof showConfirmModal === 'function') {
+        showConfirmModal({ title: 'Login required', body: 'Please login to add items. Go to login?', onConfirm: function() { window.location.href = window.loginUrl || '/auth/login'; } });
+      } else if (typeof showToast === 'function') showToast(data.error || 'Error', 'error');
+    } catch (err) { if (typeof showToast === 'function') showToast(err.message || 'Error', 'error'); }
+  }
+</script>
+{% endblock %}

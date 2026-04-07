@@ -1,0 +1,53 @@
+{% extends "base.html" %} {% block title %}Shop - Looph{% endblock %} {% block
+content %}
+<div class="shop-promo-section">
+  <img
+    src="{{ url_for('static', filename='images/limited-stocks.jpg') }}"
+    alt="Limited Stocks"
+    class="shop-promo-banner"
+  />
+</div>
+
+<div class="shop-container">
+  <div class="shop-header">
+    <h1>COLLECTION</h1>
+    <p>Looph drops, curated for every day</p>
+  </div>
+
+  <div class="filter-bar">
+    <button class="filter-btn active" data-category="all">All</button>
+    <button class="filter-btn" data-category="Shirts">Shirts</button>
+    <button class="filter-btn" data-category="Jackets">Jackets</button>
+    <button class="filter-btn" data-category="Accessories">Accessories</button>
+    <button class="filter-btn" data-category="Outerwear">Outerwear</button>
+  </div>
+
+  <div class="products-grid">
+    {% for product in products %}
+    <a href="{{ url_for('customer.product_detail', product_id=product.id) }}" class="product-card product-card-link" data-category="{{ product.category or '' }}" style="text-decoration: none; color: inherit;">
+      <div class="product-image">
+        {% if product.image_url %}
+        <img src="{{ product.image_url }}" alt="{{ product.name }}" />
+        {% else %}
+        <div class="product-placeholder">L</div>
+        {% endif %}
+      </div>
+      <div class="product-info">
+        <h3 class="product-name">{{ product.name }}</h3>
+        <div class="product-footer">
+          <div class="product-price">₱{{ "%.2f"|format(product.price) }}</div>
+          <button type="button" class="add-to-cart-btn" onclick="event.preventDefault(); event.stopPropagation(); addToCart({{ product.id }});">
+            Add to Cart
+          </button>
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+
+{% endblock %} {% block extra_js %}
+<script>
+  window.loginUrl = "{{ url_for('auth.login') }}";
+</script>
+{% endblock %}

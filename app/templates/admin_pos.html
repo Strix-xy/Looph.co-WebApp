@@ -1,0 +1,78 @@
+{% extends "base.html" %} {% block title %}POS System - Looph{% endblock %} {%
+block content %}
+<div class="pos-container">
+  <div class="pos-products-section">
+    <h2>SELECT PRODUCTS</h2>
+    <div class="pos-products-grid">
+      {% for product in products %}
+      <div
+        class="product-tile {% if product.stock == 0 %}out-of-stock{% endif %}"
+        {%
+        if
+        product.stock
+      >
+        0 %}onclick="addToPosCart({{ product.id }}, '{{
+        product.name|replace("'", "\\'") }}', {{ product.price }}, {{
+        product.stock }})"{% endif %} >
+        <h3>{{ product.name }}</h3>
+        <div class="product-price">₱{{ "%.2f"|format(product.price) }}</div>
+        <div class="product-stock">
+          {% if product.stock > 0 %} Stock: {{ product.stock }} {% else %} OUT
+          OF STOCK {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="pos-checkout-panel">
+    <h2>CHECKOUT</h2>
+
+    <div class="pos-cart-items" id="cartItems">
+      <div class="pos-empty-cart">No items added</div>
+    </div>
+
+    <div class="pos-total-section">
+      <div class="pos-total-row">
+        <span>Subtotal:</span>
+        <span id="subtotalAmount">₱0.00</span>
+      </div>
+      <div class="pos-total-row" id="discountRow" style="display: none">
+        <span>Discount:</span>
+        <span id="discountAmount" class="pos-discount-amount">-₱0.00</span>
+      </div>
+      <div class="pos-total-row total-row-border">
+        <span>TOTAL:</span>
+        <span class="pos-total-amount" id="totalAmount">₱0.00</span>
+      </div>
+    </div>
+
+    <div class="pos-discount-section">
+      <div class="pos-discount-buttons-row">
+        <button class="btn pos-discount-btn" onclick="applyDiscount('pwd')">
+          PWD (20%)
+        </button>
+        <button class="btn pos-discount-btn" onclick="applyDiscount('senior')">
+          Senior (20%)
+        </button>
+      </div>
+      <button
+        class="btn pos-discount-btn-full"
+        onclick="applyDiscount('voucher')"
+      >
+        Voucher (₱100)
+      </button>
+      <button class="btn pos-remove-discount-btn" onclick="removeDiscount()">
+        Remove Discount
+      </button>
+    </div>
+
+    <div class="pos-checkout-actions">
+      <button class="btn pos-btn-full" onclick="completeSale()">
+        COMPLETE SALE
+      </button>
+      <button class="btn pos-btn-full" onclick="clearCart()">CLEAR CART</button>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,109 @@
+{% extends "base.html" %} {% block title %}Looph - Everyday Essentials{% endblock
+%} {% block content %}
+<section class="hero">
+  <div class="hero-logo-decoration">
+    <img
+      src="{{ url_for('static', filename='images/eterno-logo.png') }}"
+      alt="ETERNO Logo"
+      class="hero-logo"
+    />
+  </div>
+  <div class="hero-content">
+    <h1>Looph</h1>
+    <p>Curated pieces for everyday movement</p>
+    <div class="cta-buttons">
+      <a href="{{ url_for('customer.shop') }}" class="btn"
+        >Explore Collection</a
+      >
+      <a href="{{ url_for('customer.about') }}" class="btn">About Looph</a>
+    </div>
+  </div>
+</section>
+
+<section class="promo-banner">
+  <div class="promo-banner-content">
+    <img
+      src="{{ url_for('static', filename='images/sale-promo.jpg') }}"
+      alt="Looph collection"
+      class="promo-image"
+    />
+    <div class="promo-overlay">
+      <h2>LIMITED STOCKS</h2>
+      <p>THE WAIT IS ALMOST OVER</p>
+      <a href="{{ url_for('customer.shop') }}" class="btn">SHOP NOW</a>
+    </div>
+  </div>
+</section>
+
+<section class="lifestyle-showcase">
+  <div class="lifestyle-grid">
+    <div class="lifestyle-item">
+      <img
+        src="{{ url_for('static', filename='images/lifestyle-model.png') }}"
+        alt="Looph lifestyle"
+      />
+      <div class="lifestyle-overlay">
+        <h3>STREETWEAR</h3>
+        <p>Urban Elegance</p>
+      </div>
+    </div>
+    <div class="lifestyle-item">
+      <img
+        src="{{ url_for('static', filename='images/group-photo.jpg') }}"
+        alt="Looph community"
+      />
+      <div class="lifestyle-overlay">
+        <h3>COMMUNITY</h3>
+        <p>Join The Movement</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Features section showcasing brand values -->
+<section class="features">
+  <div class="feature-card">
+    <h3>VERSATILE</h3>
+    <p>
+      Pieces that move with you from commute to coffee runs, designed for repeat wear.
+    </p>
+  </div>
+
+  <div class="feature-card">
+    <h3>QUALITY</h3>
+    <p>
+      Thoughtful fabrics and construction built for comfort, durability, and daily use.
+    </p>
+  </div>
+
+  <div class="feature-card">
+    <h3>COMMUNITY</h3>
+    <p>
+      Inspired by the Looph community and how real people style their everyday fits.
+    </p>
+  </div>
+</section>
+
+{% if featured_products %}
+<section class="featured-products">
+  <h2>FEATURED COLLECTION</h2>
+  <div class="products-grid">
+    {% for product in featured_products %}
+    <a href="{{ url_for('customer.shop') }}" class="product-card">
+      <div class="product-image">
+        {% if product.image_url %}
+        <img src="{{ product.image_url }}" alt="{{ product.name }}" />
+        {% else %}
+        <div class="product-placeholder">E</div>
+        {% endif %}
+      </div>
+      <h3 class="product-name">{{ product.name }}</h3>
+      <div class="product-price">₱{{ "%.2f"|format(product.price) }}</div>
+    </a>
+    {% endfor %}
+  </div>
+  <div class="view-all-products-container">
+    <a href="{{ url_for('customer.shop') }}" class="btn"> VIEW ALL PRODUCTS </a>
+  </div>
+</section>
+{% endif %} {% endblock %}

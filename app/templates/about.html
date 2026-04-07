@@ -1,0 +1,105 @@
+{% extends "base.html" %} {% block title %}About - Looph{% endblock %} {% block
+content %}
+<div class="about-hero">
+  <div class="about-hero-logo">
+    <img
+      src="{{ url_for('static', filename='images/eterno-logo.png') }}"
+      alt="Looph Logo"
+      class="about-logo-decoration"
+    />
+  </div>
+  <h1>ABOUT US</h1>
+  <p>The Story Behind Looph</p>
+</div>
+
+<div class="about-content">
+  <div class="about-section">
+    <h2>OUR PHILOSOPHY</h2>
+    <div class="philosophy-gallery">
+      <div class="philosophy-image">
+        <img
+          src="{{ url_for('static', filename='images/lifestyle-model.png') }}"
+          alt="Looph lifestyle"
+          class="about-image"
+        />
+      </div>
+      <div class="philosophy-image">
+        <img
+          src="{{ url_for('static', filename='images/philosophy-model-1.png') }}"
+          alt="Looph details"
+          class="about-image"
+        />
+      </div>
+      <div class="philosophy-image">
+        <img
+          src="{{ url_for('static', filename='images/philosophy-model-2.png') }}"
+          alt="Looph fit check"
+          class="about-image"
+        />
+      </div>
+      <div class="philosophy-image">
+        <img
+          src="{{ url_for('static', filename='images/philosophy-model-3.png') }}"
+          alt="Looph street style"
+          class="about-image"
+        />
+      </div>
+    </div>
+    <p class="about-text">
+      Looph is about everyday pieces you actually reach for. Rooted in Manila and inspired by the Looph
+      community, we design capsules that feel considered but never overdone.
+      From fabric choice to fit, every drop is built around how you move through real life.
+    </p>
+  </div>
+
+  <div class="story-section">
+    <h2>THE LOOPH VISION</h2>
+    <div class="vision-gallery">
+      <div class="vision-image">
+        <img
+          src="{{ url_for('static', filename='images/santa-graffiti.jpg') }}"
+          alt="Looph inspiration"
+        />
+      </div>
+      <div class="vision-image">
+        <img
+          src="{{ url_for('static', filename='images/pope-lamborghini.jpg') }}"
+          alt="Looph mood reference"
+        />
+      </div>
+    </div>
+    <p class="about-text">
+      Looph started as a small run of pieces made for friends and has grown with the people who wear them.
+      We focus on breathable fabrics, thoughtful silhouettes, and details that photograph well but
+      feel even better in person. Each collection is a snapshot of how our community styles the everyday.
+    </p>
+  </div>
+
+  <div class="about-section">
+    <h2>OUR VALUES</h2>
+    <div class="values-grid">
+      <div class="value-card">
+        <div class="value-icon">◆</div>
+        <h3>VERSATILE</h3>
+        <p>Pieces that layer, mix, and repeat across your week.</p>
+      </div>
+
+      <div class="value-card">
+        <div class="value-icon">◇</div>
+        <h3>QUALITY</h3>
+        <p>
+          Every fabric, fit, and finish is tested in real daily wear.
+        </p>
+      </div>
+
+      <div class="value-card">
+        <div class="value-icon">◆</div>
+        <h3>COMMUNITY</h3>
+        <p>
+          Built with the Looph community, from feedback to fit checks and content.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
