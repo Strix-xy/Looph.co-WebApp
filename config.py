@@ -60,7 +60,18 @@ class ProductionConfig(Config):
     """Production environment configuration"""
     DEBUG = False
     TESTING = False
-    SECRET_KEY = os.environ.get('SECRET_KEY')
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'vercel_secret_key_2024'
+    SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Strict'
+
+class VercelConfig(Config):
+    """Vercel serverless configuration"""
+    DEBUG = False
+    TESTING = False
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'vercel_secret_key_2024'
+    # Use in-memory SQLite for Vercel (data won't persist between requests)
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
     SESSION_COOKIE_SECURE = True
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Strict'
@@ -75,6 +86,7 @@ class TestingConfig(Config):
 config = {
     'development': DevelopmentConfig,
     'production': ProductionConfig,
+    'vercel': VercelConfig,
     'testing': TestingConfig,
     'default': DevelopmentConfig
 }
