@@ -1,4 +1,4 @@
-# Eterno Web
+# Looph.co
 
 <div align="center">
 
