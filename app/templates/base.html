@@ -1,10 +1,14 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{% block title %}Looph.co{% endblock %}</title>
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/eterno-logo.png') }}">
+    <link
+      rel="icon"
+      type="image/png"
+      href="{{ url_for('static', filename='images/logotra.png') }}"
+    />
     <script>
       (function () {
         const savedTheme = localStorage.getItem("theme") || "dark";
@@ -21,14 +25,62 @@
     <nav>
       <div class="logo-section">
         <a href="{{ url_for('main.index') }}" class="logo-link">
-          <div class="logo">Looph.co</div>
+          <img
+            src="{{ url_for('static', filename='images/logotra.png') }}"
+            alt="Looph Logo"
+            class="logo-image"
+          />
         </a>
       </div>
-      <form class="nav-search" action="{{ url_for('customer.shop') }}" method="get">
-        <input type="search" name="q" placeholder="Search products..." />
+      <form
+        class="nav-search"
+        action="{{ url_for('customer.shop') }}"
+        method="get"
+      >
+        <div class="search-container">
+          <svg
+            class="search-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.35-4.35"></path>
+          </svg>
+          <input
+            type="search"
+            name="q"
+            placeholder="Search products..."
+            id="searchInput"
+          />
+          <button
+            type="button"
+            class="search-clear"
+            id="searchClear"
+            style="display: none"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
       </form>
 
-      <button class="nav-hamburger" type="button" onclick="toggleMobileNav()" aria-label="Toggle navigation">☰</button>
+      <button
+        class="nav-hamburger"
+        type="button"
+        onclick="toggleMobileNav()"
+        aria-label="Toggle navigation"
+      >
+        ☰
+      </button>
       <div class="nav-wrapper" id="navWrapper">
         <ul class="nav-links">
           {% if session.role == 'admin' %}
@@ -39,7 +91,10 @@
           <li>
             <a
               href="#"
-              onclick="confirmLogout(); return false;"
+              onclick="
+                confirmLogout();
+                return false;
+              "
               id="logoutUrl"
               data-url="{{ url_for('auth.logout') }}"
               >Logout</a
@@ -50,7 +105,16 @@
           <li><a href="{{ url_for('customer.shop') }}">Shop</a></li>
           <li><a href="{{ url_for('customer.about') }}">About</a></li>
           <li>
-            <a href="#" onclick="confirmLogout(); return false;" id="logoutUrl" data-url="{{ url_for('auth.logout') }}">Logout</a>
+            <a
+              href="#"
+              onclick="
+                confirmLogout();
+                return false;
+              "
+              id="logoutUrl"
+              data-url="{{ url_for('auth.logout') }}"
+              >Logout</a
+            >
           </li>
           <li><a href="{{ url_for('customer.profile') }}">Profile</a></li>
           {% else %}
@@ -87,24 +151,51 @@
     </button>
 
     <div id="toastBackdrop" class="toast-backdrop" aria-hidden="true"></div>
-    <div id="toastContainer" class="toast-container" role="region" aria-live="polite">
+    <div
+      id="toastContainer"
+      class="toast-container"
+      role="region"
+      aria-live="polite"
+    >
       <div id="toast" class="toast"></div>
     </div>
 
     <div id="modalOverlay" class="modal-overlay" aria-hidden="true">
-      <div id="modalConfirm" class="modal modal-confirm" role="dialog" aria-labelledby="modalConfirmTitle" aria-modal="true">
+      <div
+        id="modalConfirm"
+        class="modal modal-confirm"
+        role="dialog"
+        aria-labelledby="modalConfirmTitle"
+        aria-modal="true"
+      >
         <h2 id="modalConfirmTitle" class="modal-title">Confirm</h2>
         <p id="modalConfirmBody" class="modal-body"></p>
         <div class="modal-actions">
-          <button type="button" id="modalConfirmCancel" class="btn btn-secondary">Cancel</button>
-          <button type="button" id="modalConfirmOk" class="btn btn-primary">Confirm</button>
+          <button
+            type="button"
+            id="modalConfirmCancel"
+            class="btn btn-secondary"
+          >
+            Cancel
+          </button>
+          <button type="button" id="modalConfirmOk" class="btn btn-primary">
+            Confirm
+          </button>
         </div>
       </div>
-      <div id="modalAlert" class="modal modal-alert" role="alertdialog" aria-labelledby="modalAlertTitle" aria-modal="true">
+      <div
+        id="modalAlert"
+        class="modal modal-alert"
+        role="alertdialog"
+        aria-labelledby="modalAlertTitle"
+        aria-modal="true"
+      >
         <h2 id="modalAlertTitle" class="modal-title">Notice</h2>
         <p id="modalAlertBody" class="modal-body"></p>
         <div class="modal-actions">
-          <button type="button" id="modalAlertOk" class="btn btn-primary">OK</button>
+          <button type="button" id="modalAlertOk" class="btn btn-primary">
+            OK
+          </button>
         </div>
       </div>
     </div>
@@ -123,7 +214,7 @@
     <footer>
       <div class="footer-logo-section">
         <img
-          src="{{ url_for('static', filename='images/eterno-logo.png') }}"
+          src="{{ url_for('static', filename='images/logotra.png') }}"
           alt="Looph.co"
           class="footer-logo"
         />
@@ -132,7 +223,8 @@
         <div class="footer-section">
           <h3>Looph</h3>
           <p>
-            Everyday pieces designed to move with you. Minimal, comfortable, and ready for real life.
+            Everyday pieces designed to move with you. Minimal, comfortable, and
+            ready for real life.
           </p>
         </div>
 

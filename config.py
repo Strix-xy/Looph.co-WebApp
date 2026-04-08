@@ -75,6 +75,8 @@ class VercelConfig(Config):
     SESSION_COOKIE_SECURE = True
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Strict'
+    # Disable Flask static file serving for Vercel (let Vercel handle it)
+    SEND_FILE_MAX_AGE_DEFAULT = 0
 
 class TestingConfig(Config):
     """Testing environment configuration"""

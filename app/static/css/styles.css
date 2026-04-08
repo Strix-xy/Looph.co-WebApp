@@ -161,6 +161,12 @@ nav:hover {
   transition: all 0.3s ease;
 }
 
+.logo-image {
+  height: 2.4rem;
+  width: auto;
+  display: block;
+}
+
 .logo {
   font-family: "Cinzel", serif;
   font-size: 1.55rem;
@@ -528,20 +534,62 @@ footer p {
   max-width: 380px;
   margin: 0 0.8rem;
 }
+
+.search-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 0.7rem;
+  width: 0.875rem;
+  height: 0.875rem;
+  color: var(--text-gray);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.search-clear {
+  position: absolute;
+  right: 0.7rem;
+  width: 1rem;
+  height: 1rem;
+  background: transparent;
+  border: none;
+  color: var(--text-gray);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  transition: color 0.2s ease;
+}
+
+.search-clear:hover {
+  color: var(--text-white);
+}
+
 .nav-hamburger {
   display: none;
-  background: transparent;
-  border: 1px solid var(--border-color);
-  color: var(--text-white);
-  padding: 0.4rem 0.6rem;
 }
+
 .nav-search input {
-  padding: 0.5rem 0.7rem;
+  padding: 0.5rem 2.5rem 0.5rem 2.5rem;
   background: rgba(255,255,255,0.05);
   border: 1px solid var(--border-color);
   color: var(--text-white);
   width: 100%;
   min-width: 180px;
+  transition: all 0.3s ease;
+}
+
+.nav-search input:focus {
+  outline: none;
+  border-color: var(--text-white);
+  background: rgba(255,255,255,0.08);
 }
 .theme-fab {
   position: fixed;
@@ -840,7 +888,10 @@ footer p {
   cursor: pointer;
   text-decoration: none;
   color: var(--text-white);
-  display: block;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 400px;
 }
 
 [data-theme="light"] .product-card {
@@ -1730,6 +1781,9 @@ footer p {
 
 .product-info {
   padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
 }
 
 .product-description {
@@ -1743,30 +1797,32 @@ footer p {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 1.5rem;
+  margin-top: auto;
   gap: 1rem;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .product-footer .product-price {
   font-weight: 600;
   white-space: nowrap;
+  flex: 1;
 }
 
 .add-to-cart-btn {
-  padding: 0.8rem 1.5rem;
+  padding: 0.6rem 1rem;
   background: transparent;
   border: 1px solid var(--text-white);
   color: var(--text-white);
   cursor: pointer;
-  letter-spacing: 2px;
-  font-size: 0.8rem;
+  letter-spacing: 1px;
+  font-size: 0.7rem;
   text-transform: uppercase;
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
   white-space: nowrap;
   flex-shrink: 0;
+  min-width: fit-content;
 }
 
 .add-to-cart-btn::before {
@@ -3196,6 +3252,180 @@ select {
   background-repeat: no-repeat;
   background-position: right 1rem center;
   padding-right: 2.5rem;
+}
+
+/* Light mode styles for About page */
+[data-theme="light"] .about-hero h1 {
+  text-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+  color: var(--text-white);
+}
+
+[data-theme="light"] .about-hero p {
+  color: var(--text-gray);
+}
+
+[data-theme="light"] .about-text {
+  color: var(--text-gray);
+}
+
+[data-theme="light"] .about-section h2 {
+  color: var(--text-white);
+}
+
+[data-theme="light"] .value-card {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: var(--border-color);
+}
+
+[data-theme="light"] .value-card:hover {
+  border-color: rgba(0, 0, 0, 0.2);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .value-icon {
+  text-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  color: var(--text-white);
+}
+
+[data-theme="light"] .value-card h3 {
+  color: var(--text-white);
+}
+
+[data-theme="light"] .value-card p {
+  color: var(--text-gray);
+}
+
+/* Light mode for Landing page */
+[data-theme="light"] .hero h1 {
+  color: var(--text-white);
+  text-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .hero p {
+  color: var(--text-gray);
+}
+
+[data-theme="light"] .hero-content {
+  color: var(--text-white);
+}
+
+[data-theme="light"] .lifestyle-overlay h3 {
+  color: var(--text-white);
+}
+
+[data-theme="light"] .lifestyle-overlay p {
+  color: var(--text-gray);
+}
+
+[data-theme="light"] .feature-card h3 {
+  color: var(--text-white);
+}
+
+[data-theme="light"] .feature-card p {
+  color: var(--text-gray);
+}
+
+[data-theme="light"] .featured-products h2 {
+  color: var(--text-white);
+}
+
+/* Light mode for Shop page */
+[data-theme="light"] .shop-header h1 {
+  color: var(--text-white);
+}
+
+[data-theme="light"] .shop-header p {
+  color: var(--text-gray);
+}
+
+[data-theme="light"] .product-name {
+  color: var(--text-white);
+}
+
+[data-theme="light"] .product-price {
+  color: var(--text-gray);
+}
+
+/* Light mode for product detail */
+[data-theme="light"] .product-description {
+  color: var(--text-gray);
+}
+
+/* Light mode for cart page */
+[data-theme="light"] .cart-header {
+  color: var(--text-white);
+}
+
+[data-theme="light"] .item-name {
+  color: var(--text-white);
+}
+
+[data-theme="light"] .summary-title {
+  color: var(--text-white);
+}
+
+/* Light mode for profile pages */
+[data-theme="light"] .profile-title {
+  color: var(--text-white);
+}
+
+[data-theme="light"] .profile-email {
+  color: var(--text-gray);
+}
+
+[data-theme="light"] .profile-card-title {
+  color: var(--text-white);
+}
+
+[data-theme="light"] .profile-empty {
+  color: var(--text-gray);
+}
+
+[data-theme="light"] .profile-edit-title {
+  color: var(--text-white);
+}
+
+/* Light mode for auth pages */
+[data-theme="light"] .auth-box h1 {
+  color: var(--text-white);
+}
+
+[data-theme="light"] .auth-box p {
+  color: var(--text-gray);
+}
+
+/* Light mode for admin pages */
+[data-theme="light"] h1, 
+[data-theme="light"] h2,
+[data-theme="light"] h3 {
+  color: var(--text-white);
+}
+
+[data-theme="light"] .admin-container h1 {
+  color: var(--text-white);
+}
+
+[data-theme="light"] .admin-container h2 {
+  color: var(--text-white);
+}
+
+/* Light mode for footer */
+[data-theme="light"] footer h3,
+[data-theme="light"] footer h4 {
+  color: var(--text-white);
+}
+
+[data-theme="light"] footer p {
+  color: var(--text-gray);
+}
+
+[data-theme="light"] .footer-section h3,
+[data-theme="light"] .footer-section h4 {
+  color: var(--text-white);
+}
+
+[data-theme="light"] .footer-bottom p {
+  color: var(--text-gray);
 }
 
 [data-theme="light"] select {
