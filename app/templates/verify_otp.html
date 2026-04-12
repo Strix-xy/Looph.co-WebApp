@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}Verify Email - Looph{% endblock %}
+
+{% block extra_css %}
+<style>
+  .auth-container {
+    min-height: calc(100vh - 100px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+  }
+  .auth-box {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border-color);
+    padding: 4rem;
+    max-width: 500px;
+    width: 100%;
+    text-align: center;
+  }
+  .auth-header { margin-bottom: 2rem; }
+  .auth-header h1 {
+    font-family: "Cinzel", serif;
+    font-size: 2rem;
+    letter-spacing: 4px;
+    margin-bottom: 0.5rem;
+  }
+  .auth-header p { color: var(--text-gray); font-size: 0.88rem; letter-spacing: 1px; line-height: 1.6; }
+  .email-badge {
+    display: inline-block;
+    color: var(--text-white);
+    font-size: 0.85rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 2px;
+    margin-top: 0.3rem;
+  }
+  .otp-input {
+    width: 100%;
+    padding: 1rem;
+    margin: 1.5rem 0 1rem;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border-color);
+    color: var(--text-white);
+    text-align: center;
+    font-size: 2rem;
+    letter-spacing: 10px;
+    font-family: "Montserrat", sans-serif;
+    transition: border-color 0.3s ease;
+    box-sizing: border-box;
+  }
+  .otp-input:focus { outline: none; border-color: var(--text-white); }
+  .error-msg {
+    background: rgba(255,68,68,0.1);
+    border: 1px solid #ff4444;
+    color: #ff4444;
+    padding: 0.9rem;
+    margin-bottom: 1rem;
+    font-size: 0.84rem;
+    letter-spacing: 1px;
+  }
+  .flash-success { color: #4caf50; font-size: 0.85rem; letter-spacing: 1px; margin-bottom: 1rem; }
+  .flash-info    { color: #4caf50; font-size: 0.85rem; letter-spacing: 1px; margin-bottom: 1rem; }
+  .flash-error   { color: #ff6b6b; font-size: 0.85rem; letter-spacing: 1px; margin-bottom: 1rem; }
+  .resend-section {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-color);
+  }
+  .resend-section p { color: var(--text-gray); font-size: 0.82rem; letter-spacing: 1px; margin-bottom: 0.8rem; }
+  .resend-btn {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-gray);
+    padding: 0.6rem 1.5rem;
+    cursor: pointer;
+    letter-spacing: 2px;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    transition: all 0.3s ease;
+  }
+  .resend-btn:hover { border-color: var(--text-white); color: var(--text-white); }
+  .back-link {
+    display: block;
+    margin-top: 1.5rem;
+    color: var(--text-gray);
+    text-decoration: none;
+    font-size: 0.82rem;
+    letter-spacing: 1px;
+    transition: color 0.2s ease;
+  }
+  .back-link:hover { color: var(--text-white); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+  <div class="auth-box">
+    <div class="auth-header">
+      <h1>VERIFY EMAIL</h1>
+      <p>A 6-digit code was sent to</p>
+      {% if email %}<span class="email-badge">{{ email }}</span>{% endif %}
+    </div>
+
+    {% if error %}
+    <div class="error-msg">{{ error }}</div>
+    {% endif %}
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <p class="flash-{{ category }}">{{ message }}</p>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form action="{{ url_for('auth.verify_email') }}" method="POST">
+      <input
+        type="text"
+        name="otp_code"
+        placeholder="000000"
+        required
+        maxlength="6"
+        pattern="\d{6}"
+        class="otp-input"
+        autocomplete="one-time-code"
+        autofocus
+        inputmode="numeric"
+      />
+      <button type="submit" class="btn" style="width:100%;">VERIFY ACCOUNT</button>
+    </form>
+
+    <div class="resend-section">
+      <p>Didn't receive the code?</p>
+      <form method="POST" action="{{ url_for('auth.resend_otp') }}">
+        <button type="submit" class="resend-btn">Resend Code</button>
+      </form>
+    </div>
+
+    <a href="{{ url_for('auth.register') }}" class="back-link">&#8592; Re-enter details</a>
+  </div>
+</div>
+{% endblock %}

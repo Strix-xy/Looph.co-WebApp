@@ -140,6 +140,12 @@
       <button type="submit" class="btn" style="width: 100%">LOGIN</button>
     </form>
 
+    <div style="text-align:center;margin-top:1.2rem;">
+      <a href="{{ url_for('auth.forgot_password') }}" style="color:var(--text-gray);font-size:0.82rem;letter-spacing:1px;text-decoration:none;transition:color 0.2s ease;" onmouseover="this.style.color='var(--text-white)'" onmouseout="this.style.color='var(--text-gray)'">
+        Forgot Password?
+      </a>
+    </div>
+
     <div class="auth-footer">
       <p style="color: var(--text-gray); margin-bottom: 0.5rem">
         Don't have an account?
