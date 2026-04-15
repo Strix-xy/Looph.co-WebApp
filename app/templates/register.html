@@ -188,6 +188,7 @@
             Show
           </button>
         </div>
+        <span id="passwordMatchMsg" class="password-match-msg"></span>
       </div>
 
       <div class="form-group">
@@ -211,28 +212,47 @@
 <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 <script>
   function togglePassword() {
-    const passwordInput = document.getElementById("password");
-    const toggleBtn = document.getElementById("togglePasswordBtn");
-
-    if (passwordInput.type === "password") {
-      passwordInput.type = "text";
-      toggleBtn.textContent = "Hide";
-    } else {
-      passwordInput.type = "password";
-      toggleBtn.textContent = "Show";
-    }
+    const input = document.getElementById("password");
+    const btn = document.getElementById("togglePasswordBtn");
+    const isHidden = input.type === "password";
+    input.type = isHidden ? "text" : "password";
+    btn.textContent = isHidden ? "Hide" : "Show";
   }
+
   function toggleConfirmPassword() {
     const input = document.getElementById("confirm_password");
     const btn = document.getElementById("toggleConfirmPasswordBtn");
-    if (input.type === "password") {
-      input.type = "text";
-      btn.textContent = "Hide";
+    const isHidden = input.type === "password";
+    input.type = isHidden ? "text" : "password";
+    btn.textContent = isHidden ? "Hide" : "Show";
+  }
+
+  // Password match indicator
+  const pwdInput = document.getElementById("password");
+  const confirmInput = document.getElementById("confirm_password");
+  const matchMsg = document.getElementById("passwordMatchMsg");
+
+  function checkPasswordMatch() {
+    if (!confirmInput.value) {
+      matchMsg.className = "password-match-msg";
+      confirmInput.classList.remove("input-error", "input-ok");
+      return;
+    }
+    if (pwdInput.value === confirmInput.value) {
+      matchMsg.textContent = "✓ Passwords match";
+      matchMsg.className = "password-match-msg match";
+      confirmInput.classList.remove("input-error");
+      confirmInput.classList.add("input-ok");
     } else {
-      input.type = "password";
-      btn.textContent = "Show";
+      matchMsg.textContent = "✗ Passwords do not match";
+      matchMsg.className = "password-match-msg nomatch";
+      confirmInput.classList.remove("input-ok");
+      confirmInput.classList.add("input-error");
     }
   }
+
+  pwdInput.addEventListener("input", checkPasswordMatch);
+  confirmInput.addEventListener("input", checkPasswordMatch);
 
   // Gmail validation
   document
