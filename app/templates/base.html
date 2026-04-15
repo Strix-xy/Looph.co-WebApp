@@ -2,8 +2,17 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>{% block title %}Looph.co{% endblock %}</title>
+    <!-- PWA -->
+    <link rel="manifest" href="/static/manifest.json" />
+    <meta name="theme-color" content="#0a0a0a" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Looph" />
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/logotra.png') }}" />
+    <!-- Favicon -->
     <link
       rel="icon"
       type="image/png"
@@ -256,8 +265,7 @@
           <h4>CONTACT</h4>
           <p>
             Email:
-            <a href="mailto:support@looph.co" class="footer-social-link"
-              >support@looph.co</a
+            <a href="/cdn-cgi/l/email-protection#dba8aeababb4a9af9bb7b4b4abb3f5b8b4" class="footer-social-link"><span class="__cf_email__" data-cfemail="2c5f595c5c435e586c4043435c44024f43">[email&#160;protected]</span></a
             ><br />
             Based in the Philippines
           </p>
@@ -281,17 +289,8 @@
       </div>
     </footer>
 
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="{{ url_for('static', filename='js/main.js') }}"></script>
     <script>
       document.addEventListener("DOMContentLoaded", function () {
         const logoutLinks = document.querySelectorAll("#logoutUrl");
-        logoutLinks.forEach((link) => {
-          if (link.dataset.url) {
-            window.logoutUrl = link.dataset.url;
-          }
-        });
-      });
-    </script>
-    {% block extra_js %}{% endblock %}
-  </body>
-</html>
+        logoutLin
