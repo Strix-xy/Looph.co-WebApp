@@ -5,7 +5,7 @@ Flask-Bcrypt==1.0.1
 
 # Database & ORM
 SQLAlchemy==2.0.43
-psycopg2-binary==2.9.10
+pg8000==1.31.2
 
 # Web Server & Utilities
 Werkzeug==3.1.3

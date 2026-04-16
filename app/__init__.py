@@ -5,6 +5,7 @@ Creates and configures the Flask application instance
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from config import config
+import importlib.util
 
 # Initialize extensions
 db = SQLAlchemy()
@@ -63,6 +64,11 @@ def create_app(config_name='default'):
     app.config.from_object(config[config_name])
     
     # Initialize extensions
+    db_uri = app.config.get('SQLALCHEMY_DATABASE_URI', '') or ''
+    if config_name == 'vercel' and db_uri.startswith('postgresql+pg8000://'):
+        if importlib.util.find_spec('pg8000') is None:
+            app.logger.error("pg8000 is missing; falling back to in-memory sqlite on Vercel startup.")
+            app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
     db.init_app(app)
     
     # Register custom Jinja2 filters
@@ -88,9 +94,16 @@ def create_app(config_name='default'):
     app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(customer_bp)
     
-    # Initialize database and create default data
+    # Initialize database and create default data.
+    # In serverless deploys (e.g., Vercel), avoid crashing the whole app when
+    # DATABASE_URL is missing/invalid: keep the function alive and log the issue.
     with app.app_context():
         from app.utils.db_init import init_database
-        init_database()
+        try:
+            init_database()
+        except Exception as exc:
+            app.logger.exception("Database initialization failed: %s", exc)
+            if config_name not in ('vercel',):
+                raise
     
     return app

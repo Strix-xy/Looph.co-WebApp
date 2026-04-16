@@ -11,9 +11,9 @@ def _normalize_database_url(raw_url):
         return None
     # Supabase/other providers sometimes use postgres://
     if raw_url.startswith('postgres://'):
-        return raw_url.replace('postgres://', 'postgresql+psycopg2://', 1)
+        return raw_url.replace('postgres://', 'postgresql+pg8000://', 1)
     if raw_url.startswith('postgresql://'):
-        return raw_url.replace('postgresql://', 'postgresql+psycopg2://', 1)
+        return raw_url.replace('postgresql://', 'postgresql+pg8000://', 1)
     return raw_url
 
 class Config:
