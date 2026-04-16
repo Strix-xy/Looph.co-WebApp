@@ -86,8 +86,8 @@
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/Strix-xy/loophco-WebApp.git
-   cd loophco-WebApp
+   git clone https://github.com/Strix-xy/Looph.co-WebApp.git
+   cd Looph.co-WebApp
    ```
 
 2. **Create a virtual environment** (recommended)
@@ -119,8 +119,7 @@
 ## ─── Project Structure
 
 ```
-loophco-WebApp/
-├── app.py              # Main Flask application
+Looph.co-WebApp/
 ├── templates/          # HTML templates
 │   ├── index.html     # Home page
 │   ├── products.html  # Products listing
@@ -167,7 +166,7 @@ This project is created for **portfolio and educational purposes**.
 
 **Strix** - [@Strix-xy](https://github.com/Strix-xy)
 
-Project Link: [https://github.com/Strix-xy/loophco-WebApp](https://github.com/Strix-xy/loophco-WebApp)
+Project Link: [https://github.com/Strix-xy/Looph.co-WebApp](https://github.com/Strix-xy/Looph.co-WebApp)
 
 ---
 
