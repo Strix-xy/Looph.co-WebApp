@@ -11,12 +11,48 @@ def _add_missing_columns():
     if db.engine.url.drivername != "sqlite":
         return
     with db.engine.connect() as conn:
+        # Add missing product columns
         result = conn.execute(db.text("PRAGMA table_info(product)"))
-        rows = result.fetchall()
-        columns = [row[1] for row in rows]
-        if "image_urls" not in columns:
+        product_columns = [row[1] for row in result.fetchall()]
+        if "image_urls" not in product_columns:
             conn.execute(db.text("ALTER TABLE product ADD COLUMN image_urls TEXT"))
-            conn.commit()
+        if "badge" not in product_columns:
+            conn.execute(db.text("ALTER TABLE product ADD COLUMN badge VARCHAR(20)"))
+        if "tags" not in product_columns:
+            conn.execute(db.text("ALTER TABLE product ADD COLUMN tags VARCHAR(100)"))
+        conn.commit()
+
+        # Add missing sale columns
+        result = conn.execute(db.text("PRAGMA table_info(sale)"))
+        sale_columns = [row[1] for row in result.fetchall()]
+        if "amount_paid" not in sale_columns:
+            conn.execute(db.text("ALTER TABLE sale ADD COLUMN amount_paid FLOAT DEFAULT 0"))
+        if "change_amount" not in sale_columns:
+            conn.execute(db.text("ALTER TABLE sale ADD COLUMN change_amount FLOAT DEFAULT 0"))
+        conn.commit()
+
+        # Add missing voucher columns
+        result = conn.execute(db.text("PRAGMA table_info(voucher)"))
+        voucher_columns = [row[1] for row in result.fetchall()]
+        if "voucher_type" not in voucher_columns:
+            conn.execute(db.text("ALTER TABLE voucher ADD COLUMN voucher_type VARCHAR(50) DEFAULT 'min_spend_discount'"))
+        if "discount_value" not in voucher_columns:
+            conn.execute(db.text("ALTER TABLE voucher ADD COLUMN discount_value FLOAT DEFAULT 0"))
+        if "max_uses" not in voucher_columns:
+            conn.execute(db.text("ALTER TABLE voucher ADD COLUMN max_uses INTEGER DEFAULT 1"))
+        if "uses" not in voucher_columns:
+            conn.execute(db.text("ALTER TABLE voucher ADD COLUMN uses INTEGER DEFAULT 0"))
+        if "start_at" not in voucher_columns:
+            conn.execute(db.text("ALTER TABLE voucher ADD COLUMN start_at DATETIME"))
+        if "end_at" not in voucher_columns:
+            conn.execute(db.text("ALTER TABLE voucher ADD COLUMN end_at DATETIME"))
+        if "is_active" not in voucher_columns:
+            conn.execute(db.text("ALTER TABLE voucher ADD COLUMN is_active BOOLEAN DEFAULT 1"))
+        if "applies_to_product_id" not in voucher_columns:
+            conn.execute(db.text("ALTER TABLE voucher ADD COLUMN applies_to_product_id INTEGER"))
+        if "min_purchase" not in voucher_columns:
+            conn.execute(db.text("ALTER TABLE voucher ADD COLUMN min_purchase FLOAT DEFAULT 0"))
+        conn.commit()
 
 
 def init_database():
@@ -51,62 +87,6 @@ def init_database():
 
 def seed_sample_data():
     """
-    Seed database with sample products (optional, for testing)
-    Call this function manually if you want sample data
+    Sample seeding intentionally disabled.
     """
-    from app.models import Product
-    
-    # Check if products already exist
-    if Product.query.count() > 0:
-        print("Sample data already exists")
-        return
-    
-    sample_products = [
-        {
-            'name': 'Classic White T-Shirt',
-            'description': 'Premium cotton t-shirt with timeless design',
-            'price': 599.00,
-            'stock': 50,
-            'category': 'Shirts',
-            'image_url': '/static/images/products/white-tshirt.jpg'
-        },
-        {
-            'name': 'Slim Fit Jeans',
-            'description': 'Comfortable denim jeans with modern fit',
-            'price': 1299.00,
-            'stock': 30,
-            'category': 'Pants',
-            'image_url': '/static/images/products/jeans.jpg'
-        },
-        {
-            'name': 'Leather Belt',
-            'description': 'Genuine leather belt with silver buckle',
-            'price': 799.00,
-            'stock': 40,
-            'category': 'Accessories',
-            'image_url': '/static/images/products/belt.jpg'
-        },
-        {
-            'name': 'Casual Sneakers',
-            'description': 'Comfortable sneakers for everyday wear',
-            'price': 2499.00,
-            'stock': 25,
-            'category': 'Footwear',
-            'image_url': '/static/images/products/sneakers.jpg'
-        },
-        {
-            'name': 'Black Polo Shirt',
-            'description': 'Classic polo shirt perfect for any occasion',
-            'price': 899.00,
-            'stock': 35,
-            'category': 'Shirts',
-            'image_url': '/static/images/products/polo.jpg'
-        }
-    ]
-    
-    for product_data in sample_products:
-        product = Product(**product_data)
-        db.session.add(product)
-    
-    db.session.commit()
-    print(f"[OK] {len(sample_products)} sample products added")
+    print("[INFO] Sample data seeding is disabled. Add products manually via admin inventory.")

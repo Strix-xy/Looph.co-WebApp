@@ -2,7 +2,7 @@
 ETERNO E-Commerce Platform - Admin Routes
 Handles admin dashboard, POS, inventory management, and sales
 """
-from flask import Blueprint, render_template, request, jsonify, redirect, url_for, session, send_file
+from flask import Blueprint, render_template, request, jsonify, redirect, url_for, session, send_file, current_app
 from app import db
 from app.models import User, Product, Sale, Order, ReportCheckpoint, Voucher
 from app.utils.helpers import (
@@ -11,14 +11,33 @@ from app.utils.helpers import (
     get_period_range, get_period_label, normalize_period
 )
 from app.utils.export import export_to_excel
-from app.utils.pdf import generate_sale_receipt, generate_sales_report_pdf
+from app.utils.pdf import generate_sale_receipt, generate_sales_report_pdf, generate_dashboard_report_pdf
 from app.utils.email import send_order_status_email
 import json
 import os
 from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
+from uuid import uuid4
 
 admin_bp = Blueprint('admin', __name__)
+
+
+def _normalize_product_tags(raw_tags):
+    """Normalize product tags to supported values."""
+    allowed = {"new", "limited", "sale"}
+    if not raw_tags:
+        return ""
+    if isinstance(raw_tags, str):
+        candidates = [part.strip().lower() for part in raw_tags.split(",")]
+    elif isinstance(raw_tags, list):
+        candidates = [sanitize_string(part, max_length=20).lower() for part in raw_tags]
+    else:
+        candidates = []
+    tags = []
+    for tag in candidates:
+        if tag in allowed and tag not in tags:
+            tags.append(tag)
+    return ",".join(tags)
 
 # ==================== DASHBOARD ====================
 
@@ -27,36 +46,44 @@ def dashboard():
     if session.get('role') not in ('admin', 'staff', 'cashier'):
         return redirect(url_for('auth.login'))
     
-    # Calculate statistics
     total_products = Product.query.count()
     total_customers = User.query.filter_by(role='customer').count()
-    
     checkpoint = ReportCheckpoint.query.filter_by(period='overall').first()
     baseline = checkpoint.last_reset_at if checkpoint else None
-    
+
     sale_query = Sale.query
     order_query = Order.query
     if baseline:
         sale_query = sale_query.filter(Sale.created_at >= baseline)
         order_query = order_query.filter(Order.created_at >= baseline)
-    
-    pos_revenue = db.session.query(db.func.sum(Sale.total_amount)).filter(Sale.created_at >= baseline).scalar() if baseline else db.session.query(db.func.sum(Sale.total_amount)).scalar()
-    if pos_revenue is None:
-        pos_revenue = 0
-    order_revenue_query = db.session.query(db.func.sum(Order.total_amount))
-    order_revenue = order_revenue_query.filter(Order.created_at >= baseline).scalar() if baseline else order_revenue_query.scalar()
-    if order_revenue is None:
-        order_revenue = 0
+
+    sales = sale_query.order_by(Sale.created_at.desc()).all()
+    orders = order_query.order_by(Order.created_at.desc()).all()
+    pos_revenue = sum(float(s.total_amount or 0) for s in sales)
+    order_revenue = sum(float(o.total_amount or 0) for o in orders)
     total_revenue = pos_revenue + order_revenue
-    
-    # Count total orders from both sources
-    total_orders = sale_query.count() + order_query.count()
+    total_orders = len(sales) + len(orders)
+    avg_order_value = (total_revenue / total_orders) if total_orders else 0
+
+    recent_orders = []
+    for order in orders[:10]:
+        recent_orders.append({
+            'id': order.id,
+            'reference': f"ORD-{order.id}",
+            'customer_name': order.customer_name,
+            'payment_method': order.payment_method,
+            'status': order.status,
+            'total_amount': float(order.total_amount or 0),
+            'created_at_display': order.to_dict().get('created_at_display')
+        })
     
     return render_template('admin_dashboard.html',
                          total_products=total_products,
                          total_customers=total_customers,
                          total_revenue=total_revenue,
-                         total_orders=total_orders)
+                         total_orders=total_orders,
+                         avg_order_value=avg_order_value,
+                         recent_orders=recent_orders)
 
 
 # ==================== POS SYSTEM ====================
@@ -66,10 +93,11 @@ def pos():
     if session.get('role') not in ('admin', 'cashier'):
         return redirect(url_for('auth.login'))
     
-    # Get all products with stock
-    products = Product.query.filter(Product.stock > 0).all()
+    # Get all products for POS listing (tiles can visually indicate stock state).
+    products = Product.query.order_by(Product.name.asc()).all()
+    products_payload = [product.to_dict() for product in products]
     
-    return render_template('admin_pos.html', products=products)
+    return render_template('admin_pos.html', products=products, products_payload=products_payload)
 
 
 @admin_bp.route('/sales/create', methods=['POST'])
@@ -82,6 +110,7 @@ def create_sale():
         items = data.get('items', [])
         payment_method = data.get('payment_method', 'cash')
         discount_type = data.get('discount_type', 'none')
+        voucher_code = (data.get('voucher_code') or '').strip().upper()
         
         # Validate items
         if not items:
@@ -105,9 +134,35 @@ def create_sale():
             
             subtotal += product.price * quantity
         
-        # Calculate discount
         discount_amount = calculate_discount(subtotal, discount_type)
+        manual_discount = float(data.get('manual_discount_amount', 0) or 0)
+        if manual_discount > 0:
+            discount_amount += manual_discount
+        if voucher_code:
+            voucher = Voucher.query.filter_by(code=voucher_code, is_active=True).first()
+            if not voucher:
+                return jsonify({'error': 'Invalid voucher code'}), 400
+            if voucher.max_uses and (voucher.uses or 0) >= voucher.max_uses:
+                return jsonify({'error': 'Voucher has reached maximum uses'}), 400
+            now = datetime.utcnow()
+            if voucher.start_at and now < voucher.start_at:
+                return jsonify({'error': 'Voucher is not yet valid'}), 400
+            if voucher.end_at and now > voucher.end_at:
+                return jsonify({'error': 'Voucher has expired'}), 400
+            if voucher.min_purchase and subtotal < float(voucher.min_purchase):
+                return jsonify({'error': f'Minimum purchase ₱{float(voucher.min_purchase):,.2f} required'}), 400
+            if voucher.voucher_type in ('product_discount', 'min_spend_discount', 'bogo'):
+                discount_amount += min(float(voucher.discount_value), subtotal)
+            elif voucher.voucher_type == 'free_delivery':
+                discount_amount += 0
+            voucher.uses = (voucher.uses or 0) + 1
+        discount_amount = min(discount_amount, subtotal)
         final_total = subtotal - discount_amount
+        
+        amount_paid = float(data.get('amount_paid', final_total) or final_total)
+        if amount_paid < final_total:
+            return jsonify({'error': 'Amount paid must be equal to or greater than the total'}), 400
+        change_amount = max(0, amount_paid - final_total)
         
         # Update product stock
         for item in items:
@@ -121,6 +176,8 @@ def create_sale():
             payment_method=payment_method,
             discount_type=discount_type if discount_type != 'none' else None,
             discount_amount=discount_amount,
+            amount_paid=amount_paid,
+            change_amount=change_amount,
             items=json.dumps(items)
         )
         
@@ -135,12 +192,14 @@ def create_sale():
             'sale_id': new_sale.id,
             'subtotal': subtotal,
             'discount_amount': discount_amount,
-            'final_total': final_total
+            'final_total': final_total,
+            'amount_paid': amount_paid,
+            'change_amount': change_amount
         })
     
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': 'Failed to create sale'}), 
+        return jsonify({'error': 'Failed to create sale'}), 500
 
 
 @admin_bp.route('/receipt/<int:sale_id>')
@@ -170,11 +229,11 @@ def inventory():
     products = Product.query.order_by(Product.name).all()
     
     # Prepare products data as JSON for JavaScript
-    products_json = json.dumps([product.to_dict() for product in products])
+    products_payload = [product.to_dict() for product in products]
     
     return render_template('admin_inventory.html', 
                          products=products, 
-                         products_json=products_json)
+                         products_payload=products_payload)
 
 
 @admin_bp.route('/products/add', methods=['POST'])
@@ -190,6 +249,9 @@ def add_product():
         if not is_valid:
             return jsonify({'error': error_msg}), 400
         
+        badge = sanitize_string(data.get('badge', ''), max_length=20).lower()
+        if badge not in ('new', 'sale', 'limited'):
+            badge = None
         image_urls_raw = data.get('image_urls')
         if isinstance(image_urls_raw, list):
             urls = [sanitize_string(u, max_length=500) for u in image_urls_raw[:20] if u]
@@ -203,6 +265,8 @@ def add_product():
             price=float(data['price']),
             stock=int(data['stock']),
             category=sanitize_string(data.get('category', ''), max_length=50),
+            badge=badge,
+            tags=_normalize_product_tags(data.get('tags')),
             image_url=primary,
             image_urls=json.dumps(urls) if urls else None,
             is_pinned=bool(data.get('is_pinned', False))
@@ -223,7 +287,7 @@ def add_product():
         return jsonify({'error': 'Invalid data format'}), 400
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': 'Failed to add product'}), 500
+        return jsonify({'error': f'Failed to add product: {str(e)}'}), 500
 
 
 @admin_bp.route('/products/update/<int:product_id>', methods=['PUT'])
@@ -237,7 +301,12 @@ def update_product(product_id):
         
         # Validate if updating critical fields
         if 'price' in data or 'stock' in data or 'name' in data:
-            is_valid, error_msg = validate_product_data(data)
+            validation_payload = {
+                'name': data.get('name', product.name),
+                'price': data.get('price', product.price),
+                'stock': data.get('stock', product.stock)
+            }
+            is_valid, error_msg = validate_product_data(validation_payload)
             if not is_valid:
                 return jsonify({'error': error_msg}), 400
         
@@ -263,8 +332,13 @@ def update_product(product_id):
             product.image_url = urls[0] if urls else (product.image_url or '')
         elif 'image_url' in data:
             product.image_url = sanitize_string(data['image_url'], max_length=500)
+        if 'badge' in data:
+            badge = sanitize_string(data.get('badge', ''), max_length=20).lower()
+            product.badge = badge if badge in ('new', 'sale', 'limited') else None
         if 'is_pinned' in data:
             product.is_pinned = bool(data['is_pinned'])
+        if 'tags' in data:
+            product.tags = _normalize_product_tags(data.get('tags'))
         db.session.commit()
         
         # Export to Excel
@@ -308,7 +382,7 @@ def delete_product(product_id):
 @admin_bp.route('/orders')
 def get_orders():
     """Get all orders for admin dashboard with pagination support"""
-    if session.get('role') != 'admin':
+    if session.get('role') not in ('admin', 'staff', 'cashier'):
         return jsonify({'error': 'Unauthorized'}), 403
     
     try:
@@ -381,19 +455,17 @@ def get_orders():
             })
         
         transactions.sort(key=lambda x: x['created_at'] or "", reverse=True)
-        
         if limit:
             transactions = transactions[:limit]
-            
-            return jsonify({
-                'success': True,
+        return jsonify({
+            'success': True,
             'transactions': transactions,
             'totals': {
                 'customer_orders': total_customer_orders,
                 'pos_sales': total_pos_sales,
                 'combined': total_customer_orders + total_pos_sales
-                }
-            })
+            }
+        })
     
     except Exception as e:
         return jsonify({'error': 'Failed to fetch orders'}), 500
@@ -437,8 +509,8 @@ def get_order_details(order_id):
         sale = Sale.query.get(order_id)
         if sale:
             sale_data = sale.to_dict()
-        return jsonify({
-            'success': True,
+            return jsonify({
+                'success': True,
                 'record_type': 'pos_sale',
                 'transaction': {
                     'id': sale.id,
@@ -459,7 +531,6 @@ def get_order_details(order_id):
                     'processed_by': sale.user.username if getattr(sale, 'user', None) else None
                 }
             })
-        
         return jsonify({'error': 'Transaction not found'}), 404
     
     except Exception as e:
@@ -475,9 +546,14 @@ def update_order_status(order_id):
     try:
         order = Order.query.get_or_404(order_id)
         data = request.json
-        new_status = data.get('status')
-        
-        valid_statuses = ['pending', 'out_for_delivery', 'completed', 'cancelled']
+        raw_status = (data.get('status') or '').strip().lower()
+        legacy_map = {
+            'pending': 'processing',
+            'out_for_delivery': 'shipped'
+        }
+        new_status = legacy_map.get(raw_status, raw_status)
+
+        valid_statuses = ['processing', 'shipped', 'delivered', 'completed', 'cancelled']
         if new_status not in valid_statuses:
             return jsonify({'error': 'Invalid status'}), 400
         
@@ -498,6 +574,47 @@ def update_order_status(order_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': 'Failed to update order status'}), 500
+
+
+@admin_bp.route('/customers')
+def get_customers():
+    """Get customer accounts for admin management."""
+    if session.get('role') != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    try:
+        customers = User.query.filter_by(role='customer').order_by(User.created_at.desc()).all()
+        return jsonify({
+            'success': True,
+            'customers': [{
+                'id': c.id,
+                'username': c.username,
+                'email': c.email,
+                'full_name': c.full_name,
+                'created_at_display': c.to_dict().get('created_at_display')
+            } for c in customers]
+        })
+    except Exception:
+        return jsonify({'error': 'Failed to fetch customers'}), 500
+
+
+@admin_bp.route('/customers/<int:user_id>', methods=['DELETE'])
+def delete_customer(user_id):
+    """Delete customer account and related records."""
+    if session.get('role') != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    try:
+        customer = User.query.get_or_404(user_id)
+        if customer.role != 'customer':
+            return jsonify({'error': 'Only customer accounts can be deleted'}), 400
+        if session.get('user_id') == customer.id:
+            return jsonify({'error': 'You cannot delete your own active account'}), 400
+        db.session.delete(customer)
+        db.session.commit()
+        export_to_excel()
+        return jsonify({'success': True})
+    except Exception:
+        db.session.rollback()
+        return jsonify({'error': 'Failed to delete customer'}), 500
 
 
 @admin_bp.route('/products/list')
@@ -553,7 +670,7 @@ def get_product_orders(product_id):
 @admin_bp.route('/revenue')
 def get_revenue_breakdown():
     """Get revenue breakdown for admin dashboard"""
-    if session.get('role') != 'admin':
+    if session.get('role') not in ('admin', 'staff', 'cashier'):
         return jsonify({'error': 'Unauthorized'}), 403
     
     try:
@@ -763,12 +880,70 @@ def download_report_pdf():
         return jsonify({'error': 'Failed to generate report'}), 500
 
 
+@admin_bp.route('/dashboard/report/pdf')
+def download_dashboard_report_pdf():
+    """Generate PDF report for dashboard metrics and latest orders."""
+    if session.get('role') not in ('admin', 'staff', 'cashier'):
+        return jsonify({'error': 'Unauthorized'}), 403
+    try:
+        checkpoint = ReportCheckpoint.query.filter_by(period='overall').first()
+        baseline = checkpoint.last_reset_at if checkpoint else None
+
+        orders_query = Order.query
+        sales_query = Sale.query
+        if baseline:
+            orders_query = orders_query.filter(Order.created_at >= baseline)
+            sales_query = sales_query.filter(Sale.created_at >= baseline)
+
+        orders = orders_query.order_by(Order.created_at.desc()).all()
+        sales = sales_query.order_by(Sale.created_at.desc()).all()
+        orders_revenue = sum(float(o.total_amount or 0) for o in orders)
+        pos_revenue = sum(float(s.total_amount or 0) for s in sales)
+        total_revenue = orders_revenue + pos_revenue
+        total_orders = len(orders) + len(sales)
+        avg_order_value = (total_revenue / total_orders) if total_orders else 0
+
+        customers = {
+            (o.customer_email or o.customer_name or '').strip().lower()
+            for o in orders if (o.customer_email or o.customer_name)
+        }
+        status_breakdown = {'processing': 0, 'shipped': 0, 'delivered': 0, 'completed': 0, 'cancelled': 0}
+        for order in orders:
+            status = (order.status or 'processing').strip().lower()
+            if status not in status_breakdown:
+                status = 'processing'
+            status_breakdown[status] += 1
+
+        recent_orders = [{
+            'reference': f"ORD-{o.id}",
+            'customer_name': o.customer_name,
+            'status': o.status or 'processing',
+            'total_amount': float(o.total_amount or 0),
+            'created_at_display': o.to_dict().get('created_at_display') or ''
+        } for o in orders[:20]]
+
+        report_buffer = generate_dashboard_report_pdf(
+            {
+                'revenue': total_revenue,
+                'orders': total_orders,
+                'customers': len(customers),
+                'avg_order_value': avg_order_value
+            },
+            status_breakdown,
+            recent_orders
+        )
+        filename = f"dashboard_report_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.pdf"
+        return send_file(report_buffer, as_attachment=True, download_name=filename, mimetype='application/pdf')
+    except Exception:
+        return jsonify({'error': 'Failed to generate dashboard report'}), 500
+
+
 # ==================== IMAGE UPLOAD ====================
 
 @admin_bp.route('/products/upload-image', methods=['POST'])
 def upload_product_image():
     """Upload product image file"""
-    if session.get('role') != 'admin':
+    if session.get('role') not in ('admin', 'staff'):
         return jsonify({'error': 'Unauthorized'}), 403
     
     # Check if running on Vercel (serverless environment)
@@ -791,21 +966,21 @@ def upload_product_image():
         if not file.content_type.startswith('image/'):
             return jsonify({'error': 'File must be an image'}), 400
         
-        # Create uploads directory if it doesn't exist
-        upload_folder = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'app', 'static', 'images', 'uploads')
+        # Save to the active Flask static directory (supports external theme static path).
+        upload_folder = os.path.join(current_app.static_folder, 'images', 'uploads')
         os.makedirs(upload_folder, exist_ok=True)
         
         # Generate secure filename with timestamp
         filename = secure_filename(file.filename)
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_')
-        filename = timestamp + filename
+        filename = f"{timestamp}{uuid4().hex[:8]}_{filename}"
         
         # Save file
         file_path = os.path.join(upload_folder, filename)
         file.save(file_path)
         
         # Return URL path
-        image_url = f'/static/images/uploads/{filename}'
+        image_url = url_for('static', filename=f'images/uploads/{filename}')
         
         return jsonify({
             'success': True,
@@ -865,12 +1040,25 @@ def create_voucher():
         )
         db.session.add(v)
         db.session.commit()
-        return jsonify({'success': True, 'id': v.id})
+        return jsonify({
+            'success': True,
+            'id': v.id,
+            'voucher': {
+                'id': v.id,
+                'code': v.code,
+                'voucher_type': v.voucher_type,
+                'discount_value': float(v.discount_value or 0),
+                'uses': int(v.uses or 0),
+                'max_uses': int(v.max_uses or 0),
+                'end_at': v.end_at.isoformat() if v.end_at else '',
+                'is_active': bool(v.is_active)
+            }
+        })
     except (ValueError, TypeError) as e:
         return jsonify({'error': 'Invalid data'}), 400
-    except Exception:
+    except Exception as e:
         db.session.rollback()
-        return jsonify({'error': 'Failed to create voucher'}), 500
+        return jsonify({'error': f'Failed to create voucher: {str(e)}'}), 500
 
 
 @admin_bp.route('/vouchers/<int:voucher_id>/update', methods=['PUT'])

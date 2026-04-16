@@ -125,8 +125,18 @@ def register():
     return render_template('register.html')
 
 
-@auth_bp.route('/logout')
+@auth_bp.route('/logout', methods=['GET', 'POST'])
 def logout():
-    """Clear user session and redirect to landing page"""
-    session.clear()
-    return redirect(url_for('main.index', toast='logout'))
+    """Clear user session and redirect to landing page.
+
+    Use POST for actual logout to avoid accidental GET-triggered logouts.
+    """
+    if request.method == 'POST':
+        session.clear()
+        return redirect(url_for('main.index', toast='logout'))
+    # Ignore direct GET logout attempts to prevent accidental session clears.
+    if session.get('role') == 'admin':
+        return redirect(url_for('admin.dashboard'))
+    if session.get('user_id'):
+        return redirect(url_for('customer.shop'))
+    return redirect(url_for('main.index'))

@@ -6,6 +6,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from io import BytesIO
 import json
+from datetime import datetime
 from app.utils.helpers import format_datetime_sg
 
 def generate_sale_receipt(sale):
@@ -36,13 +37,15 @@ def generate_sale_receipt(sale):
     processed_by = getattr(sale.user, 'username', 'Admin')
     p.drawString(50, 640, f"Processed By: {processed_by}")
     p.drawString(50, 620, f"Payment: {sale.payment_method.upper()}")
+    p.drawString(50, 600, f"Amount Paid: ₱{float(getattr(sale, 'amount_paid', 0) or 0):.2f}")
+    p.drawString(50, 580, f"Change Due: ₱{float(getattr(sale, 'change_amount', 0) or 0):.2f}")
     
     if sale.discount_type:
-        p.drawString(50, 600, f"Discount Type: {sale.discount_type.upper()}")
+        p.drawString(50, 560, f"Discount Type: {sale.discount_type.upper()}")
     else:
-        p.drawString(50, 600, "Discount Type: NONE")
+        p.drawString(50, 560, "Discount Type: NONE")
     
-    p.line(50, 590, 550, 590)
+    p.line(50, 550, 550, 550)
     
     # Items table header
     try:
@@ -269,6 +272,76 @@ def generate_sales_report_pdf(period_label, start_date, end_date, metrics):
     p.setFont("Helvetica", 9)
     p.drawCentredString(300, y_position, "Generated via Looph Admin Dashboard")
     
+    p.save()
+    buffer.seek(0)
+    return buffer
+
+
+def generate_dashboard_report_pdf(metrics, status_breakdown, recent_orders):
+    """Generate PDF report for admin dashboard snapshot."""
+    buffer = BytesIO()
+    p = canvas.Canvas(buffer, pagesize=letter)
+
+    p.setFont("Helvetica-Bold", 18)
+    p.drawCentredString(300, 770, "Looph Dashboard Report")
+    p.setFont("Helvetica", 10)
+    p.drawCentredString(300, 754, f"Generated: {format_datetime_sg(datetime.utcnow())}")
+    p.line(50, 744, 550, 744)
+
+    y = 724
+    p.setFont("Helvetica-Bold", 13)
+    p.drawString(50, y, "KPI Summary")
+    y -= 22
+    p.setFont("Helvetica", 11)
+    p.drawString(60, y, f"Revenue: P{float(metrics.get('revenue', 0) or 0):,.2f}")
+    y -= 18
+    p.drawString(60, y, f"Orders: {int(metrics.get('orders', 0) or 0)}")
+    y -= 18
+    p.drawString(60, y, f"Customers: {int(metrics.get('customers', 0) or 0)}")
+    y -= 18
+    p.drawString(60, y, f"Average Order Value: P{float(metrics.get('avg_order_value', 0) or 0):,.2f}")
+    y -= 26
+
+    p.setFont("Helvetica-Bold", 13)
+    p.drawString(50, y, "Order Status Breakdown")
+    y -= 22
+    p.setFont("Helvetica", 11)
+    for key in ("processing", "shipped", "delivered", "completed", "cancelled"):
+        p.drawString(60, y, f"{key.title()}: {int(status_breakdown.get(key, 0) or 0)}")
+        y -= 16
+    y -= 10
+
+    p.setFont("Helvetica-Bold", 13)
+    p.drawString(50, y, "Recent Orders")
+    y -= 20
+    p.setFont("Helvetica-Bold", 10)
+    p.drawString(50, y, "Reference")
+    p.drawString(150, y, "Customer")
+    p.drawString(315, y, "Status")
+    p.drawString(400, y, "Total")
+    p.drawString(485, y, "Date")
+    y -= 14
+    p.setFont("Helvetica", 9)
+
+    for order in recent_orders[:12]:
+        if y < 70:
+            p.showPage()
+            y = 760
+            p.setFont("Helvetica-Bold", 10)
+            p.drawString(50, y, "Reference")
+            p.drawString(150, y, "Customer")
+            p.drawString(315, y, "Status")
+            p.drawString(400, y, "Total")
+            p.drawString(485, y, "Date")
+            y -= 14
+            p.setFont("Helvetica", 9)
+        p.drawString(50, y, str(order.get("reference", ""))[:14])
+        p.drawString(150, y, str(order.get("customer_name", ""))[:28])
+        p.drawString(315, y, str(order.get("status", ""))[:12].upper())
+        p.drawRightString(470, y, f"P{float(order.get('total_amount', 0) or 0):,.2f}")
+        p.drawString(485, y, str(order.get("created_at_display", ""))[:16])
+        y -= 14
+
     p.save()
     buffer.seek(0)
     return buffer

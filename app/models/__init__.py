@@ -61,6 +61,8 @@ class Product(db.Model):
     stock = db.Column(db.Integer, nullable=False, default=0)
     sold_count = db.Column(db.Integer, nullable=False, default=0)
     is_pinned = db.Column(db.Boolean, default=False, index=True)
+    badge = db.Column(db.String(20), index=True)
+    tags = db.Column(db.String(100))
     category = db.Column(db.String(50), index=True)
     image_url = db.Column(db.String(500))
     image_urls = db.Column(db.Text)
@@ -94,6 +96,19 @@ class Product(db.Model):
                 pass
         return [self.image_url] if self.image_url else []
 
+    def get_tags_list(self):
+        """Return normalized list of product tags."""
+        allowed_tags = {"new", "limited", "sale"}
+        raw = (self.tags or "").strip()
+        if not raw:
+            return []
+        parsed = []
+        for token in raw.split(","):
+            normalized = token.strip().lower()
+            if normalized in allowed_tags and normalized not in parsed:
+                parsed.append(normalized)
+        return parsed
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -104,6 +119,8 @@ class Product(db.Model):
             'sold_count': getattr(self, 'sold_count', 0) or 0,
             'is_pinned': getattr(self, 'is_pinned', False) or False,
             'category': self.category,
+            'badge': self.badge,
+            'tags': self.get_tags_list(),
             'image_url': self.image_url,
             'image_urls': self.get_image_list(),
             'created_at': isoformat_datetime_sg(self.created_at),
@@ -141,6 +158,8 @@ class Sale(db.Model):
     payment_method = db.Column(db.String(50), default='cash')  # cash, gcash, bank_transfer
     discount_type = db.Column(db.String(50))  # pwd, senior, voucher, none
     discount_amount = db.Column(db.Float, default=0)
+    amount_paid = db.Column(db.Float, default=0)
+    change_amount = db.Column(db.Float, default=0)
     items = db.Column(db.Text, nullable=False)  # JSON string of purchased items
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     
@@ -166,6 +185,8 @@ class Sale(db.Model):
             'payment_method': self.payment_method,
             'discount_type': self.discount_type,
             'discount_amount': self.discount_amount,
+            'amount_paid': getattr(self, 'amount_paid', 0) or 0,
+            'change_amount': getattr(self, 'change_amount', 0) or 0,
             'items': self.items,
             'items_data': items_data,
             'subtotal': subtotal,
@@ -223,7 +244,7 @@ class Order(db.Model):
     total_amount = db.Column(db.Float, nullable=False)
     payment_method = db.Column(db.String(50), nullable=False)  # cod, gcash, bank_transfer
     items = db.Column(db.Text, nullable=False)
-    status = db.Column(db.String(50), default='pending', index=True)
+    status = db.Column(db.String(50), default='processing', index=True)
     voucher_code = db.Column(db.String(50), nullable=True)
     voucher_discount = db.Column(db.Float, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)

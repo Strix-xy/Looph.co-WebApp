@@ -60,7 +60,33 @@ class ProductionConfig(Config):
     """Production environment configuration"""
     DEBUG = False
     TESTING = False
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'vercel_secret_key_2024'
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'eterno_production_key_2024'
+    SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Strict'
+
+class PythonAnywhereConfig(Config):
+    """PythonAnywhere hosting configuration"""
+    DEBUG = False
+    TESTING = False
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'eterno_pythonanywhere_key_2024'
+    
+    # PythonAnywhere provides a persistent home directory
+    basedir = os.path.expanduser('~')
+    instance_dir = os.path.join(basedir, '.eterno_instance')
+    
+    # Use PostgreSQL on PythonAnywhere if DATABASE_URL is set, else SQLite
+    # PythonAnywhere recommends PostgreSQL for production
+    if os.environ.get('DATABASE_URL'):
+        SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
+    else:
+        # Fall back to SQLite in home directory
+        os.makedirs(instance_dir, exist_ok=True)
+        SQLALCHEMY_DATABASE_URI = f'sqlite:///{os.path.join(instance_dir, "eterno.db")}'
+    
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    
+    # Session settings for HTTPS
     SESSION_COOKIE_SECURE = True
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Strict'
@@ -88,6 +114,7 @@ class TestingConfig(Config):
 config = {
     'development': DevelopmentConfig,
     'production': ProductionConfig,
+    'pythonanywhere': PythonAnywhereConfig,
     'vercel': VercelConfig,
     'testing': TestingConfig,
     'default': DevelopmentConfig

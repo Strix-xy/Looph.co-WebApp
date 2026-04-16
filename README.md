@@ -18,7 +18,7 @@
 
 ## ─── About The Project
 
-**Eterno** is a sleek, modern web-based clothing shop concept that demonstrates clean design principles and Flask backend integration. This portfolio project showcases how to build a structured, navigable web application with smooth routing and aesthetic appeal.
+**Loophco** is a sleek, modern web-based clothing shop concept that demonstrates clean design principles and Flask backend integration. This portfolio project showcases how to build a structured, navigable web application with smooth routing and aesthetic appeal.
 
 > 💡 **Note:** This is a conceptual demonstration project - not a full e-commerce platform, but a showcase of web development fundamentals and design sensibility.
 
@@ -56,15 +56,18 @@
 ## ─── Built With
 
 ### Frontend
+
 - **HTML5** - Semantic markup and structure
 - **CSS3** - Modern styling with responsive design
 - **JavaScript** - Interactive functionality and dynamic content
 
 ### Backend
+
 - **Flask** - Micro web framework for Python
 - **Python 3.x** - Core programming language
 
 ### Development Tools
+
 - **Git & GitHub** - Version control and collaboration
 - **VS Code / Code::Blocks** - Development environment
 
@@ -81,23 +84,27 @@
 ### Setup Instructions
 
 1. **Clone the repository**
+
    ```bash
-   git clone https://github.com/Strix-xy/Eterno-Web.git
-   cd Eterno-Web
+   git clone https://github.com/Strix-xy/loophco-WebApp.git
+   cd loophco-WebApp
    ```
 
 2. **Create a virtual environment** (recommended)
+
    ```bash
    python -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
 
 3. **Install dependencies**
+
    ```bash
    pip install flask
    ```
 
 4. **Run the application**
+
    ```bash
    python app.py
    ```
@@ -112,16 +119,16 @@
 ## ─── Project Structure
 
 ```
-Eterno-Web/
+loophco-WebApp/
 ├── app.py              # Main Flask application
 ├── templates/          # HTML templates
 │   ├── index.html     # Home page
 │   ├── products.html  # Products listing
 │   └── about.html     # About page
 ├── static/            # Static assets (if applicable)
-│   ├── css/          
-│   ├── images/       
-│   └── js/           
+│   ├── css/
+│   ├── images/
+│   └── js/
 └── README.md          # Project documentation
 ```
 
@@ -129,7 +136,7 @@ Eterno-Web/
 
 ## ─── Design Philosophy
 
-Eterno embraces a **minimalist aesthetic** that prioritizes:
+Loophco embraces a **minimalist aesthetic** that prioritizes:
 
 - **Clarity** - Every element serves a purpose
 - **Elegance** - Simple yet sophisticated visuals
@@ -160,7 +167,7 @@ This project is created for **portfolio and educational purposes**.
 
 **Strix** - [@Strix-xy](https://github.com/Strix-xy)
 
-Project Link: [https://github.com/Strix-xy/Eterno-Web](https://github.com/Strix-xy/Eterno-Web)
+Project Link: [https://github.com/Strix-xy/loophco-WebApp](https://github.com/Strix-xy/loophco-WebApp)
 
 ---
 

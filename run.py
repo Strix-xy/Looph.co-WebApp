@@ -1,7 +1,3 @@
-"""
-ETERNO E-Commerce Platform - Application Entry Point
-Run this file to start the Flask application
-"""
 import os
 from app import create_app
 

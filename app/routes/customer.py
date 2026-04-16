@@ -13,8 +13,22 @@ from app.utils.crypto import encrypt_field, decrypt_field
 from app.utils.export import export_to_excel
 from app.utils.email import send_order_receipt_email
 import json
+import random
 
 customer_bp = Blueprint('customer', __name__)
+
+
+def _resolve_checkout_delivery_fee(raw_fee, free_delivery=False):
+    """Normalize delivery fee so cart preview and checkout totals stay consistent."""
+    if free_delivery:
+        return 0.0
+    try:
+        fee = float(raw_fee)
+    except (TypeError, ValueError):
+        fee = 0.0
+    if fee < 50:
+        fee = float(random.randint(50, 100))
+    return round(fee, 2)
 
 # ==================== SHOP ====================
 
@@ -32,13 +46,47 @@ def shop():
             )
         )
     products = products_q.order_by(Product.is_pinned.desc(), Product.created_at.desc()).all()
-    return render_template('shop.html', products=products)
+    wishlist_ids = []
+    if 'user_id' in session:
+        wishlist_ids = [item.product_id for item in WishlistItem.query.filter_by(user_id=session['user_id']).all()]
+    products_payload = []
+    for product in products:
+        avg_rating = db.session.query(db.func.avg(Review.rating)).filter(Review.product_id == product.id).scalar()
+        review_count = db.session.query(db.func.count(Review.id)).filter(Review.product_id == product.id).scalar() or 0
+        images = product.get_image_list()
+        first_image = images[0] if images else product.image_url
+        rating_value = round(float(avg_rating), 1) if review_count > 0 else 5.0
+        badge = product.badge or ('new' if product.is_pinned else None)
+        if not first_image:
+            continue
+        products_payload.append({
+            'id': product.id,
+            'name': product.name,
+            'category': product.category or 'Uncategorized',
+            'price': float(product.price or 0),
+            'badge': badge,
+            'tags': product.get_tags_list(),
+            'rating': rating_value,
+            'reviews': int(review_count),
+            'stock': int(product.stock or 0),
+            'image_url': first_image,
+            'in_wishlist': product.id in wishlist_ids,
+            'description': product.description or ''
+        })
+    return render_template(
+        'shop.html',
+        products=products_payload,
+        products_payload=products_payload
+    )
 
 
 @customer_bp.route('/product/<int:product_id>')
 def product_detail(product_id):
     product = Product.query.get_or_404(product_id)
     reviews = product.reviews.order_by(Review.created_at.desc()).limit(50).all()
+    avg_rating = db.session.query(db.func.avg(Review.rating)).filter(Review.product_id == product.id).scalar()
+    review_count = db.session.query(db.func.count(Review.id)).filter(Review.product_id == product.id).scalar() or 0
+    rating = round(float(avg_rating), 1) if review_count > 0 else 5.0
     in_wishlist = False
     if 'user_id' in session:
         in_wishlist = WishlistItem.query.filter_by(
@@ -48,7 +96,9 @@ def product_detail(product_id):
         'product_detail.html',
         product=product,
         reviews=reviews,
-        in_wishlist=in_wishlist
+        in_wishlist=in_wishlist,
+        rating=rating,
+        review_count=review_count
     )
 
 
@@ -123,6 +173,7 @@ def cart():
     ).all()
     
     total_subtotal = sum(product.price * cart_item.quantity for cart_item, product in cart_items)
+    delivery_fee = _resolve_checkout_delivery_fee(total_subtotal * 0)
     user = User.query.get(session['user_id'])
     
     display_address = decrypt_field(user.address) if user else ''
@@ -130,6 +181,7 @@ def cart():
         'cart.html',
         cart_items=cart_items,
         total_subtotal=total_subtotal,
+        delivery_fee=delivery_fee,
         user_profile=user,
         display_address=display_address
     )
@@ -142,11 +194,58 @@ def profile():
     user = User.query.get_or_404(session['user_id'])
     orders = user.orders.order_by(Order.created_at.desc()).limit(20).all()
     wishlist_items = user.wishlist_items.order_by(WishlistItem.id.desc()).all()
+    wishlist_products = []
+    for wish in wishlist_items:
+        product = wish.product
+        if not product:
+            continue
+        first_image = product.get_image_list()[0] if product.get_image_list() else product.image_url
+        if not first_image:
+            continue
+        wishlist_products.append({
+            'id': product.id,
+            'name': product.name,
+            'cat': product.category or 'Uncategorized',
+            'price': float(product.price or 0),
+            'badge': product.badge,
+            'rating': 5,
+            'reviews': 0,
+            'desc': product.description or '',
+            'imgs': product.get_image_list() if product.get_image_list() else [first_image],
+            'image_url': first_image,
+            'sizes': ['S', 'M', 'L', 'XL']
+        })
     display_address = decrypt_field(user.address)
     display_phone = decrypt_field(user.phone_number)
     return render_template('profile.html', user=user, orders=orders,
                           wishlist_items=wishlist_items,
+                          wishlist_products=wishlist_products,
                           display_address=display_address, display_phone=display_phone)
+
+
+@customer_bp.route('/profile/orders/data')
+def profile_orders_data():
+    """Live profile order payload for user-side sync and status updates."""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+    try:
+        user = User.query.get_or_404(session['user_id'])
+        orders = user.orders.order_by(Order.created_at.desc()).limit(30).all()
+        return jsonify({
+            'success': True,
+            'orders': [{
+                'id': order.id,
+                'reference': f"ORD-{order.id}",
+                'created_at_display': order.to_dict().get('created_at_display'),
+                'total_amount': float(order.total_amount or 0),
+                'status': (order.status or 'processing'),
+                'payment_method': order.payment_method,
+                'customer_address': order.customer_address,
+                'items_data': order.to_dict().get('items_data', [])
+            } for order in orders]
+        })
+    except Exception:
+        return jsonify({'error': 'Failed to load orders'}), 500
 
 
 @customer_bp.route('/profile/edit', methods=['GET', 'POST'])
@@ -435,8 +534,9 @@ def checkout():
             if v.min_purchase and subtotal < float(v.min_purchase):
                 return jsonify({'error': f'Minimum purchase ₱{v.min_purchase:.2f} for this voucher'}), 400
             if v.voucher_type == 'free_delivery':
+                parsed_client_fee = _resolve_checkout_delivery_fee(delivery_fee)
                 delivery_fee = 0
-                discount_amount = data.get('delivery_fee') or 0
+                discount_amount = parsed_client_fee
                 free_delivery_applied = True
             elif v.voucher_type in ('product_discount', 'min_spend_discount'):
                 discount_amount = min(float(v.discount_value), subtotal)
@@ -445,11 +545,8 @@ def checkout():
             else:
                 discount_amount = min(float(v.discount_value), subtotal)
             subtotal = max(0, subtotal - discount_amount)
-        
-        import random
-        if not free_delivery_applied and (not delivery_fee or delivery_fee < 50):
-            delivery_fee = random.randint(50, 100)
-        
+
+        delivery_fee = _resolve_checkout_delivery_fee(delivery_fee, free_delivery_applied)
         total_amount = subtotal + delivery_fee
         
         order_items = []
@@ -474,12 +571,12 @@ def checkout():
             customer_name=user.full_name or user.username,
             customer_email=user.email,
             customer_address=customer_address,
-            subtotal=subtotal + discount_amount,
+            subtotal=cart_data['subtotal'],
             shipping_fee=delivery_fee,
             total_amount=total_amount,
             payment_method=payment_method,
             items=json.dumps(order_items),
-            status='completed' if payment_method == 'cod' else 'pending',
+            status='processing',
             voucher_code=voucher_code or None,
             voucher_discount=discount_amount
         )
@@ -498,7 +595,9 @@ def checkout():
             'order_id': new_order.id,
             'payment_method': payment_method,
             'shipping_fee': delivery_fee,
-            'total_amount': total_amount
+            'total_amount': total_amount,
+            'voucher_code': voucher_code or None,
+            'status': new_order.status
         })
     
     except Exception as e:
