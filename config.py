@@ -101,8 +101,9 @@ class PythonAnywhereConfig(Config):
     if os.environ.get('DATABASE_URL'):
         SQLALCHEMY_DATABASE_URI = _normalize_database_url(os.environ.get('DATABASE_URL'))
     else:
-        # Fall back to SQLite in home directory
-        os.makedirs(instance_dir, exist_ok=True)
+        # Fall back to SQLite path without creating directories at import time.
+        # Creating directories in class body causes import-time crashes on
+        # read-only serverless filesystems (e.g., Vercel).
         SQLALCHEMY_DATABASE_URI = f'sqlite:///{os.path.join(instance_dir, "eterno.db")}'
     
     SQLALCHEMY_TRACK_MODIFICATIONS = False
