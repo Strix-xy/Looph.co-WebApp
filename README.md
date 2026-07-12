@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 # Looph.co
 
 <div align="center">
